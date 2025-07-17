@@ -301,6 +301,9 @@ class Sampler(base_sampler.BaseSampler):
 
   @property
   def dtype(self) -> jnp.dtype:
+    if not self._flattened_transformer_state:
+      # TODO @mazumdera: remove this once bug is fixed.
+      return jnp.float32
     return self._flattened_transformer_state[0].dtype
 
   def init_sample_state(
