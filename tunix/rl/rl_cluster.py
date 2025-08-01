@@ -22,7 +22,7 @@ import enum
 import gc
 import operator
 import os
-from typing import Any, Union
+from typing import Any, Callable, Union
 from absl import logging
 from flax import nnx
 from flax.nnx import filterlib
@@ -40,6 +40,8 @@ from tunix.rl.rollout import base_rollout
 from tunix.rl.rollout import vanilla_rollout
 from tunix.sft import peft_trainer
 
+import functools
+from flax import linen as nn
 
 ModelOrPath = Union[nnx.Module, str]
 
@@ -109,6 +111,9 @@ class RLCluster:
       reward: ModelOrPath | None = None,
       tokenizer: Any | None,
       cluster_config: ClusterConfig,
+      model_config: Any | None = None,
+      load_model_function: Callable[[Any, ModelOrPath, Mesh], nnx.Module]
+      | None = None,
   ):
     self.cluster_config = cluster_config
     self.r2m = cluster_config.role_to_mesh
@@ -180,6 +185,7 @@ class RLCluster:
     self._propagate_backbone_sharing_map()
 
   def _load_model(self, model_or_path: ModelOrPath, mesh: Mesh) -> nnx.Module:
+    #TODO(mazumdera): should we call this maybe_reshard_model?
     """Loads model with given mesh to the given memory_kind.
 
     If input is already an NNX model, check if the model is sharded on the
@@ -192,41 +198,52 @@ class RLCluster:
     Returns:
       The model loaded on the given mesh.
     """
-    if isinstance(model_or_path, nnx.Module):
-      model_mesh = utils.get_pytree_mesh_info(nnx.state(model_or_path))
-      original_shardings = jax.tree_util.tree_map(
-          lambda x: x.sharding, nnx.state(model_or_path)
-      )
-      is_on_device = jax.tree_util.tree_reduce(
-          operator.or_,
-          jax.tree.map(
-              lambda x: x.memory_kind == self._default_memory_kind,
-              original_shardings,
-          ),
-      )
-      if not mesh.empty and model_mesh != mesh:
-        logging.warning("Resharding model from %s to %s", model_mesh, mesh)
-        graph, state = nnx.split(model_or_path)
-        dst_shardings = jax.tree_util.tree_map(
-            lambda x: jax.sharding.NamedSharding(
-                mesh,
-                x,
-                memory_kind=self._default_memory_kind
-                if is_on_device
-                else "pinned_host",
+    try:
+      if isinstance(model_or_path, nnx.Module):
+        model_mesh = utils.get_pytree_mesh_info(nnx.state(model_or_path))
+        original_shardings = jax.tree_util.tree_map(
+            lambda x: x.sharding, nnx.state(model_or_path)
+        )
+        is_on_device = jax.tree_util.tree_reduce(
+            operator.or_,
+            jax.tree.map(
+                lambda x: x.memory_kind == self._default_memory_kind,
+                original_shardings,
             ),
-            nnx.get_partition_spec(state),
         )
-        model_or_path = nnx.merge(
-            graph, reshard.reshard_pytree(state, dst_shardings)
-        )
-      if is_on_device and self.cluster_config.offload_to_cpu:
-        graph, state = nnx.split(model_or_path)
-        new_params = utils.put_params_on_memory_kind(state, "pinned_host")
-        model_or_path = nnx.merge(graph, new_params)
-      return model_or_path
-    else:
-      raise NotImplementedError("Loading from path is not supported yet.")
+        if not mesh.empty and model_mesh != mesh:
+          logging.warning("Resharding model from %s to %s", model_mesh, mesh)
+          graph, state = nnx.split(model_or_path)
+          dst_shardings = 
+          nn.logical_to_mesh_sharding(
+            jax.tree_util.tree_map(
+              lambda x: jax.sharding.NamedSharding(
+                  mesh,
+                  x,
+                  memory_kind=self._default_memory_kind
+                  if is_on_device
+                  else "pinned_host",
+              ),
+              nnx.get_partition_spec(state),
+          ), mesh
+          )
+          model_or_path = nnx.merge(
+              graph, reshard.reshard_pytree(state, dst_shardings)
+          )
+        if is_on_device and self.cluster_config.offload_to_cpu:
+          graph, state = nnx.split(model_or_path)
+          new_params = utils.put_params_on_memory_kind(state, "pinned_host")
+          model_or_path = nnx.merge(graph, new_params)
+        return model_or_path
+      else:
+        raise NotImplementedError("Loading from path is not supported yet.")
+    except Exception as e:
+      logging.exception(
+          "Something went wrong while loading model %s on mesh %s.",
+          model_or_path,
+          mesh,
+      )
+      raise
 
   def _init_cluster(self):
     """Initializes the RL cluster."""
