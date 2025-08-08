@@ -237,7 +237,7 @@ class RLCluster:
     ], f"Unsupported rollout engine: {self.cluster_config.rollout_engine}"
     if self.cluster_config.rollout_engine == "vanilla":
       assert hasattr(
-          self.rollout_actor, "config"
+          self.rollout_actor.base, "config"
       ), "Actor model must have a config attribute."
       # We must load the model from CPU before initializing the rollout,
       # otherwise the prefill and decode programs might be initialized on CPU.
@@ -247,9 +247,10 @@ class RLCluster:
           self.tokenizer,
           cache_config_or_size=base_rollout.CacheConfig(
               cache_size=self.cluster_config.rollout_config.kv_cache_size,
-              num_layers=self.rollout_actor.config.num_layers,
-              num_kv_heads=self.rollout_actor.config.num_kv_heads,
-              head_dim=self.rollout_actor.config.head_dim,
+              #TODO(mazumdera@): make these configurable.
+              num_layers=self.rollout_actor.base.config.base_num_decoder_layers,
+              num_kv_heads=self.rollout_actor.base.config.num_kv_heads,
+              head_dim=self.rollout_actor.base.config.head_dim,
           ),
       )
       self._maybe_offload_model_to_cpu(self._rollout.model(), Role.ROLLOUT)
