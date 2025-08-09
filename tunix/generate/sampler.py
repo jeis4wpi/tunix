@@ -197,7 +197,7 @@ class Sampler(base_sampler.BaseSampler):
     )
     # we separate out state and graph def so that the state can be passed as an
     # argument to _decode_fn, resulting in it not being treated as a static
-    # arg. This greatly reduces the size of the HLO and reduces compile time
+        # arg. This greatly reduces the size of the HLO and reduces compile time
     self._compiled_decode_fn = jax.jit(self._decode_fn)
     self._compiled_prefill_fn = jax.jit(self._prefill_fn)
 
@@ -350,6 +350,7 @@ class Sampler(base_sampler.BaseSampler):
 
     if include_logits:
       logits_buffer = jnp.zeros(
+        #TODO: @mazumdera: make this more generic for non MaxText models.
           (batch_size, total_sampling_steps, self.transformer.num_embed),
           dtype=jnp.float32,
       )
