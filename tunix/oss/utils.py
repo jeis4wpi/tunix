@@ -17,11 +17,11 @@ import humanize
 
 
 def pathways_available() -> bool:
-  try:
-    import pathwaysutils  # pylint: disable=g-import-not-at-top, unused-import
+  # try:
+  #   import pathwaysutils  # pylint: disable=g-import-not-at-top, unused-import
 
-    return True
-  except ImportError:
+  #   return True
+  # except ImportError:
     return False
 
 

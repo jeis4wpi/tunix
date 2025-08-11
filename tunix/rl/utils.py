@@ -162,6 +162,12 @@ def show_hbm_usage(title=""):
           used / limit,
           devices[i],
       )
+      print("Using %s / %s (%s) on %s",
+          fmt_size(used),
+          fmt_size(limit),
+          used / limit,
+          devices[i],
+      )
 
 
 def put_params_on_memory_kind(
@@ -202,3 +208,5 @@ def put_params_on_memory_kind(
   shardings = jax.tree.map(lambda x: x.sharding, params_on_memory_kind)
   logging.info("params_on_memory_kind shardings: %s", shardings)
   return params_on_memory_kind
+
+

@@ -67,6 +67,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       model_version: str,
       mapping_config: MappingConfig,
       hbm_utilization: Optional[float] = 0.3,
+      tp: int = 1
   ):
     """Initializes the VllmSampler.
 
@@ -88,7 +89,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
     self.mesh = mesh
     self.lora_config = mapping_config.lora_config
     self.hbm_utilization = hbm_utilization
-
+    self.tp= tp
     self.args = self._vllm_config()
     self.llm = LLM(**self.args)
 
@@ -131,7 +132,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
     args["additional_config"] = {}
     args["model"] = self.model_version
     args["max_model_len"] = self.max_model_len
-    args["tensor_parallel_size"] = self.mesh.shape["tp"]
+    args["tensor_parallel_size"] = self.tp
     args["gpu_memory_utilization"] = self.hbm_utilization
     if self.lora_config is not None:
       args["additional_config"]["lora_config"] = self.lora_config
