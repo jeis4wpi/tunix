@@ -369,11 +369,11 @@ def build_flat_dict(
 
 
 def transfer_state_with_mappings(
-    src_state,
-    dst_state,
+    src_state, # maxtext
+    dst_state, # vllm
     key_mappings,
     transpose_keys=None,
-    reshard_fn=None,
+    reshard_fn=None
 ):
   """Transfer state using mappings, with optional transpose and shard logic.
 
@@ -390,21 +390,8 @@ def transfer_state_with_mappings(
   Returns:
     The target state with the transferred values.
   """
-
-  src_flat = src_state.flat_state()
-  tgt_flat = dst_state.flat_state()
-  new_src_dict = build_flat_dict(tgt_flat, key_mappings)
-
-  def process_entry(src_keys, src_val):
-    flat_key = '.'.join(str(k) for k in src_keys)
-    if flat_key not in new_src_dict:
-      logging.error('!!! No mapping for source key: %s', flat_key)
-      return
-
-    tgt_param, _ = new_src_dict[flat_key]
-    value = src_val.value
-
-    # Optional transpose
+  def _process_and_assign_value(value, tgt_param, flat_key, transpose_keys, reshard_fn, src_keys):
+        # Optional transpose
     if (
         transpose_keys
         and (src_keys[-1] in transpose_keys)
@@ -414,6 +401,7 @@ def transfer_state_with_mappings(
 
     # Shape check and general padding support
     if tgt_param.value.shape != value.shape:
+      
       if len(value.shape) != len(tgt_param.value.shape):
         raise ValueError(
             f'Rank mismatch for {flat_key}: {value.shape} vs'
@@ -463,8 +451,119 @@ def transfer_state_with_mappings(
     )
     tgt_param.value = new_value
 
+
+  def _extract_layer_from_scanned_tensor(tensor, layer_idx, layer_axis):
+      """Extract a specific layer from a scanned tensor."""
+      if layer_axis == 0:
+          return tensor[layer_idx]
+      elif layer_axis == 1:
+          return tensor[:, layer_idx]
+      elif layer_axis == 2:
+          return tensor[:, :, layer_idx]
+      elif layer_axis == 3:
+          return tensor[:, :, :, layer_idx]
+      else:
+          raise ValueError(f"Unsupported layer axis: {layer_axis}")
+
+  def _get_layer_axis_from_sharding_spec(sharding_spec):
+      """Determine which axis contains the layer dimension from sharding specification."""
+      if isinstance(sharding_spec, (list, tuple)):
+          for i, spec in enumerate(sharding_spec):
+              if spec == 'layer':
+                  return i
+      return None
+
+  def _resolve_target_key_for_layer(target_pattern, layer_idx):
+      """Replace the * wildcard in target pattern with actual layer index."""
+      return target_pattern.replace('*', str(layer_idx))
+  
+  @lru_cache(maxsize=None)
+  def _find_num_layers():
+    for src_keys, src_val in src_flat:
+        flat_key = '.'.join(str(k) for k in src_keys)
+        if flat_key in key_mappings:
+            _, sharding_spec = key_mappings[flat_key]
+            layer_axis = _get_layer_axis_from_sharding_spec(sharding_spec)
+            if layer_axis is not None:
+                return src_val.value.shape[layer_axis]
+    raise ValueError("No layer axis found in the source state. Ensure the source state has a layer dimension.")
+
+  src_flat = src_state.flat_state()
+  tgt_flat = dst_state.flat_state()
+
+  tgt_param_dict = {}
+  for tgt_keys, tgt_param in tgt_flat:
+      tgt_key = '.'.join(str(k) for k in tgt_keys)
+      tgt_param_dict[tgt_key] = tgt_param
+      
+  visited_target_keys = set()
+
+  def _should_skip_parameter(param_key):
+    """Check if a parameter should be skipped during transfer."""
+    skip_patterns = [
+        'to_nnx__rngs',  # JAX NNX RNG states
+        'rng.',          # General RNG states  
+        '.count',        # RNG counters
+        '.key',          # RNG keys
+        'dropout',       # Dropout RNG states
+    ]
+    
+    return any(pattern in param_key for pattern in skip_patterns)
+
+  def process_entry(src_keys, src_val):
+    flat_key = '.'.join(str(k) for k in src_keys)
+
+
+    if flat_key not in key_mappings:
+      # Skip RNG states and other internal parameters that don't need mapping
+      if _should_skip_parameter(flat_key):
+          logging.debug('Skipping internal parameter: %s', flat_key)
+          return
+      else:
+          logging.error('No mapping for source key: %s', flat_key)
+
+          
+    target_pattern, sharding_spec = key_mappings[flat_key]
+
+    layer_axis = _get_layer_axis_from_sharding_spec(sharding_spec)
+        
+    if layer_axis is not None:
+        num_layers = _find_num_layers()
+        # This is a layer-specific parameter - extract each layer
+        for layer_idx in range(0, num_layers):
+            layer_tensor = _extract_layer_from_scanned_tensor(
+                src_val.value, layer_idx, layer_axis
+            )
+            target_key = _resolve_target_key_for_layer(target_pattern, layer_idx) #vllm layer
+            visited_target_keys.add(target_key)
+            if target_key in tgt_param_dict:
+                print("target_key", target_key, tgt_param_dict[target_key].value.shape)
+                _process_and_assign_value(
+                    layer_tensor, tgt_param_dict[target_key], 
+                    flat_key, transpose_keys, reshard_fn, src_keys
+                )
+            else:
+                logging.warning('Target key not found: %s', target_key)
+    else:
+        # This is a global parameter (not layer-specific)
+        if target_pattern in tgt_param_dict:
+            visited_target_keys.add(target_pattern)
+            _process_and_assign_value(
+                src_val.value, tgt_param_dict[target_pattern],
+                flat_key, transpose_keys, reshard_fn, src_keys
+            )
+        else:
+            logging.warning('Target key not found: %s', target_pattern)
+
+
   # Loop through each parameter
   for src_keys, src_val in src_flat:
     process_entry(src_keys, src_val)
 
+  # Check if all target keys were visited
+  for tgt_keys, tgt_param in tgt_flat:
+    tgt_key = '.'.join(str(k) for k in tgt_keys)
+    if tgt_key not in visited_target_keys:
+      raise ValueError(f'Target key {tgt_key} was not visited during transfer.')
+  
   return dst_state.from_flat_path(tgt_flat)
