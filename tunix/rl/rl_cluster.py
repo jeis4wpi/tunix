@@ -214,8 +214,7 @@ class RLCluster:
         if not mesh.empty and model_mesh != mesh:
           logging.warning("Resharding model from %s to %s", model_mesh, mesh)
           graph, state = nnx.split(model_or_path)
-          dst_shardings = 
-          nn.logical_to_mesh_sharding(
+          dst_shardings = nn.logical_to_mesh_sharding(
             jax.tree_util.tree_map(
               lambda x: jax.sharding.NamedSharding(
                   mesh,
