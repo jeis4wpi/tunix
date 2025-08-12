@@ -359,7 +359,27 @@ def build_flat_dict(
           else:
             src_parts.append(part)
         actual_src = '.'.join(src_parts)
-        new_flat_dict[actual_src] = v, sharding
+        
+        # Check if this is a scanned parameter (has 'layer' in sharding spec)
+        if sharding and 'layer' in sharding:
+          layer_axis = sharding.index('layer')
+          num_layers = v.value.shape[layer_axis]
+          
+          # Create list of target keys for all layers, sorted by layer id
+          target_list = []
+          for layer_idx in range(num_layers):
+            layer_target = tgt.replace('*', str(layer_idx))
+            target_list.append((layer_idx, layer_target))
+          
+          # Sort by layer id and extract just the target keys
+          target_list.sort(key=lambda x: x[0])
+          sorted_targets = [target for _, target in target_list]
+          
+          new_flat_dict[actual_src] = v, sharding, sorted_targets
+        else:
+          # Regular (non-scanned) parameter
+          new_flat_dict[actual_src] = v, sharding
+        
         mapped = True
         break
     # There are no mappings for rng related params.
@@ -509,7 +529,6 @@ def transfer_state_with_mappings(
     layer_axis = _get_layer_axis_from_sharding_spec(sharding_spec)
         
     if layer_axis is not None: 
-        assert False
         # This is a scanned parameter - extract each layer
         num_layers = len(tgt_param)
         for layer_idx in range(0, num_layers):
