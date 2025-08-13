@@ -33,7 +33,6 @@ class VllmRollout(base_rollout.BaseRollout):
       mesh: jax.sharding.Mesh,
       lora_config: Optional[Dict[str, str]] = None,
       model_version: str = "meta-llama/Llama-3.1-8B",
-      tp = -1,
   ):
     self.mesh = mesh
     self._sampler = vllm_sampler.VllmSampler(
@@ -48,7 +47,6 @@ class VllmRollout(base_rollout.BaseRollout):
             lora_to_hf_mappings=model.lora_to_hf_mappings(),
             lora_config=lora_config,
         ),
-        tp=tp,
     )
     state = nnx.state(model)
     self._sampler.load_checkpoint(state)
