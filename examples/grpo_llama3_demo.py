@@ -89,6 +89,8 @@ to train the model for longer.
 """
 
 # ====== Data ======
+# TRAIN_DATA_DIR = "/home/mazumdera_google_com/tunix/llama3/data/train"
+# TEST_DATA_DIR = "/home/mazumdera_google_com/tunix/llama3/data/test"
 TRAIN_DATA_DIR = "./data/train"
 TEST_DATA_DIR = "./data/test"
 TRAIN_FRACTION = 1.0
@@ -155,8 +157,8 @@ WARMUP_STEPS = 0.1 * MAX_STEPS
 MAX_GRAD_NORM = 0.1
 
 # Checkpoint saving
-INTERMEDIATE_CKPT_DIR = "/home/mazumdera_google_com/content/intermediate_ckpt/"
-CKPT_DIR = "/home/mazumdera_google_com/content/ckpts/"
+INTERMEDIATE_CKPT_DIR = "/home/mazumdera_google_com/content/intermediate_ckpt_llama3/"
+CKPT_DIR = "/home/mazumdera_google_com/content/ckpts_llama3/"
 SAVE_INTERVAL_STEPS = 500
 MAX_TO_KEEP = 4
 
@@ -271,32 +273,31 @@ def get_dataset(data_dir, split="train") -> grain.MapDataset:
   )
   return dataset
 
-#Anisha: Dataset loading 
-# dataset = get_dataset(TRAIN_DATA_DIR, "train").batch(BATCH_SIZE)[:NUM_BATCHES]
+dataset = get_dataset(TRAIN_DATA_DIR, "train").batch(BATCH_SIZE)[:NUM_BATCHES]
 
-# if TRAIN_FRACTION == 1.0:
-#   train_dataset = dataset.repeat(NUM_EPOCHS)
-#   val_dataset = None
-# else:
-#   train_dataset = dataset[: int(len(dataset) * TRAIN_FRACTION)]
-#   train_dataset = train_dataset.repeat(NUM_EPOCHS)
+if TRAIN_FRACTION == 1.0:
+  train_dataset = dataset.repeat(NUM_EPOCHS)
+  val_dataset = None
+else:
+  train_dataset = dataset[: int(len(dataset) * TRAIN_FRACTION)]
+  train_dataset = train_dataset.repeat(NUM_EPOCHS)
 
-#   val_dataset = dataset[int(len(dataset) * TRAIN_FRACTION) :].repeat(NUM_EPOCHS)
+  val_dataset = dataset[int(len(dataset) * TRAIN_FRACTION) :].repeat(NUM_EPOCHS)
 
-# test_dataset = get_dataset(TEST_DATA_DIR, "test").batch(BATCH_SIZE)[
-#     :NUM_TEST_BATCHES
-# ]
+test_dataset = get_dataset(TEST_DATA_DIR, "test").batch(BATCH_SIZE)[
+    :NUM_TEST_BATCHES
+]
 
-# len(train_dataset), len(val_dataset) if val_dataset is not None else 0, len(
-#     test_dataset
-# )
+len(train_dataset), len(val_dataset) if val_dataset is not None else 0, len(
+    test_dataset
+)
 
-# """Let's see how one batch of the dataset looks like!
+"""Let's see how one batch of the dataset looks like!
 
-# """
+"""
 
-# for ele in train_dataset[:1]:
-#   pprint(ele)
+for ele in train_dataset[:1]:
+  pprint(ele)
 
 """## Load the policy model and the reference model
 
@@ -355,7 +356,7 @@ import sys
 import os
 
 # add the parent directory (one level up) to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '../maxtext')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '../../maxtext')))
 
 # ! pip install -r ../../maxtext/requirements.txt
 
@@ -414,6 +415,7 @@ def get_ref_maxtext_model(config):
         )
 
     model_config = llama3_lib.ModelConfig.llama3_1_8b()
+    tunix_model.config = model_config
 
   return tunix_model, mesh, model_config
 
@@ -455,7 +457,7 @@ def get_ref_maxtext_model(config):
 from MaxText.integration.tunix.tunix_adaptor import TunixMaxTextLlama
 
 config_ref = pyconfig.initialize(
-      ["", "../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
+      ["", "../../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
       base_output_directory="gs://dummy_output_dir",  # This is not used in Tunix.
       # run_name="test-tunix-maxtext-llama3-8b",
       run_name="test-tunix-maxtext-llama3.1-8b",
@@ -506,7 +508,7 @@ show_hbm_usage()
 # nnx.display(lora_gemma)
 
 config_policy = pyconfig.initialize(
-      ["", "../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
+      ["", "../../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
       base_output_directory="gs://dummy_output_dir",  # This is not used in Tunix.
       # run_name="test-tunix-maxtext-llama3-8b",
       run_name="test-tunix-maxtext-llama3.1-8b",
@@ -1010,7 +1012,7 @@ grpo_config = GrpoConfig(
 rl_cluster = rl_cluster_lib.RLCluster(
     actor=llama3_1_8b_policy,
     reference=llama3_1_8b,
-    tokenizer=data_lib.GemmaTokenizer(),
+        tokenizer=gemma_tokenizer,
     cluster_config=cluster_config,
 )
 
@@ -1040,23 +1042,22 @@ trained_ckpt_path = os.path.join(CKPT_DIR, str(MAX_STEPS), "model_params")
 
 abs_params = jax.tree.map(
     lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
-    nnx.state(lora_gemma, nnx.LoRAParam),
+    nnx.state(llama3_1_8b_policy, nnx.LoRAParam),
 )
 checkpointer = ocp.StandardCheckpointer()
 trained_lora_params = checkpointer.restore(trained_ckpt_path, target=abs_params)
 
 nnx.update(
-    lora_gemma,
+    llama3_1_8b_policy,
     jax.tree.map(
         lambda a, b: b,
-        nnx.state(lora_gemma, nnx.LoRAParam),
+        nnx.state(llama3_1_8b_policy, nnx.LoRAParam),
         trained_lora_params,
     ),
 )
-
-gemma_tokenizer = data_lib.GemmaTokenizer()
+ 
 sampler = sampler_lib.Sampler(
-    transformer=lora_gemma,
+    transformer=llama3_1_8b_policy,
     tokenizer=gemma_tokenizer,
     cache_config=sampler_lib.CacheConfig(
         cache_size=MAX_PROMPT_LENGTH + TOTAL_GENERATION_STEPS + 256,

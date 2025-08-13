@@ -38,6 +38,8 @@ from tunix.rl.rollout import vanilla_rollout
 from tunix.sft import peft_trainer
 
 from flax import linen as nn
+import os
+import gc
 
 ModelOrPath = Union[nnx.Module, str]
 
@@ -107,9 +109,6 @@ class RLCluster:
       reward: ModelOrPath | None = None,
       tokenizer: Any | None,
       cluster_config: ClusterConfig,
-      model_config: Any | None = None,
-      load_model_function: Callable[[Any, ModelOrPath, Mesh], nnx.Module]
-      | None = None,
   ):
     self.cluster_config = cluster_config
     r2m = cluster_config.role_to_mesh
