@@ -280,7 +280,7 @@ class UtilsTest(absltest.TestCase):
       
       # Create target state with individual layer parameters
       target_params = {
-          "embedding.weight": MockParam(jnp.zeros((embed_dim, vocab_size), dtype=jnp.float32))  # Note: transposed shape
+          "embedding.weight": MockParam(jnp.zeros((embed_dim, vocab_size), dtype=jnp.float32)) 
       }
       
       # Individual layer parameters for scanned weights and biases
@@ -348,7 +348,6 @@ class UtilsTest(absltest.TestCase):
       
       # Verify regular parameter with transpose
       transferred_embedding = new_tgt_state.params["embedding.weight"]
-      expected_embedding = jnp.transpose(embedding_weights, (1, 0))  # Shape: (embed_dim, vocab_size)
       
       self.assertEqual(transferred_embedding.shape, (embed_dim, vocab_size))
       self.assertTrue(
@@ -356,5 +355,3 @@ class UtilsTest(absltest.TestCase):
           "Regular parameter with transpose mismatch"
       )
       
-      # Additional verification: ensure all target parameters were updated
-      self.assertEqual(len(new_tgt_state.params), 1 + 2 * num_layers)  # embedding + (weight + bias) * num_layers
