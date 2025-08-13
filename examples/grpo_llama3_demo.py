@@ -371,6 +371,7 @@ from MaxText import pyconfig
 # from MaxText.integrations.tunix.tunix_utils import build_tunix_wrapper
 from flax import linen as nn
 from tunix.models.llama3 import model as llama3_lib
+
 def get_ref_maxtext_model(config):
 
   #python3 -m MaxText.train MaxText/configs/base.yml base_output_directory=${BASE_OUTPUT_DIRECTORY} dataset_path=${DATASET_PATH} tokenizer_path=assets/tokenizer.gemma load_parameters_path=${CONVERTED_CHECKPOINT} per_device_batch_size=1 run_name=${FINETUNE_RUN_NAME} max_target_length=8192 steps=10 async_checkpointing=false model_name=gemma-2b checkpoint_period=5
@@ -404,8 +405,17 @@ def get_ref_maxtext_model(config):
     sharded_state = create_sharded_state()
     model = nnx.merge(graphdef, sharded_state)
 
-    # In a real scenario, you would load your sharded checkpoint here.
-    checkpoint = {}
+    target_for_restore = jax.tree.map(
+        lambda v: v.value, sharded_state, is_leaf=lambda n: isinstance(n, nnx.Variable)
+    )
+    checkpoint = mt.checkpointing.load_params_from_path(
+        load_parameters_from_path=config.load_parameters_path,
+        abstract_unboxed_params=target_for_restore,
+        checkpoint_storage_concurrent_gb=None,
+    )
+    # checkpoint = ocp.StandardCheckpointer().restore(
+    #     "gs://maxtext-gemma/2b/2025-08-05-04-37/0/items", target=target_for_restore
+    # )
     if checkpoint:
         nnx.update(model, checkpoint)
 
@@ -419,58 +429,28 @@ def get_ref_maxtext_model(config):
 
   return tunix_model, mesh, model_config
 
-# def get_ref_maxtext_model(config, mesh=None):
-
-#   #python3 -m MaxText.train MaxText/configs/base.yml base_output_directory=${BASE_OUTPUT_DIRECTORY} dataset_path=${DATASET_PATH} tokenizer_path=assets/tokenizer.gemma load_parameters_path=${CONVERTED_CHECKPOINT} per_device_batch_size=1 run_name=${FINETUNE_RUN_NAME} max_target_length=8192 steps=10 async_checkpointing=false model_name=gemma-2b checkpoint_period=5
 
 
-#   #TODO: Anisha:
-#   # model = mt.from_pretrained(config)
-
-#   rngs = nnx.Rngs(1234)
-#   model = build_tunix_wrapper(
-#         config,
-#         rngs,
-#         enable_dropout=False,   # deterministic SFT (you can override at runtime)
-#         init_batch_size=1,
-#         init_seq_len=1,
-#         use_attention_mask=False,  # trust Tunix loss masking
-#     )
-#   mesh  = model.base.mesh
-
-
-#   # We can continue to use Tunix's model_config
-#   model_config = gemma_lib.TransformerConfig.gemma2_2b()
-
-#   # Add these lines to properly get the graph definition and state
-#   graphdef, state = nnx.split(model)
-#   model = nnx.merge(graphdef, state)  # Recreate model in proper NNX format
-
-
-
-#   return model, mesh, model_config
-
-# Base model
-# gemma, mesh, model_config = get_base_model(
-#     ckpt_path=os.path.join(INTERMEDIATE_CKPT_DIR, "state")
-# )
 from MaxText.integration.tunix.tunix_adaptor import TunixMaxTextLlama
 
 config_ref = pyconfig.initialize(
       ["", "../../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
       base_output_directory="gs://dummy_output_dir",  # This is not used in Tunix.
-      # run_name="test-tunix-maxtext-llama3-8b",
       run_name="test-tunix-maxtext-llama3.1-8b",
+      # run_name="test-tunix-maxtext-llama3.1-8b",
       # dataset_path=we use Tunix's dataset
       #TODO: @mazumdera: change this to use checkpoint
       tokenizer_type="tiktoken",
       tokenizer_path="assets/tokenizer_llama3.tiktoken",
+      load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
+      # tokenizer_path="assets/tokenizer.gemma",
       per_device_batch_size=1,
       max_prefill_predict_length=4,
       max_target_length=16,
       steps=10,
       async_checkpointing="false",
       model_name="llama3.1-8b",
+      # model_name="gemma-2b",
       checkpoint_period=5,
       skip_jax_distributed_system="true",
       weight_dtype="bfloat16",
@@ -510,13 +490,14 @@ show_hbm_usage()
 config_policy = pyconfig.initialize(
       ["", "../../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
       base_output_directory="gs://dummy_output_dir",  # This is not used in Tunix.
-      # run_name="test-tunix-maxtext-llama3-8b",
       run_name="test-tunix-maxtext-llama3.1-8b",
+      # run_name="test-tunix-maxtext-llama3.1-8b",
       # dataset_path=we use Tunix's dataset
-      # load_parameters_path="gs://maxtext-gemma/2b/", #TODO: @mazumdera: change this to use checkpoint
+      #TODO: @mazumdera: change this to use checkpoint
       tokenizer_type="tiktoken",
       tokenizer_path="assets/tokenizer_llama3.tiktoken",
-      # tokenizer_path="../../maxtext/assets/tokenizer.gemma",
+      load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
+      # tokenizer_path="assets/tokenizer.gemma",
       per_device_batch_size=1,
       max_prefill_predict_length=4,
       max_target_length=16,
