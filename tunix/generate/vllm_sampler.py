@@ -67,7 +67,6 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       model_version: str,
       mapping_config: MappingConfig,
       hbm_utilization: Optional[float] = 0.3,
-      tp: int = -1,
   ):
     """Initializes the VllmSampler.
 
@@ -82,8 +81,6 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
           to_hf_transpose_keys and lora_config.
         hbm_utilization (Optional[float], optional): Fraction of HBM memory to
           utilize for vLLM. Mainly for KV cache size tuning. Defaults to 0.3.
-        tp (int, optional): Tensor parallelism size. If -1, will be inferred
-          from the mesh. Defaults to -1.
     """
     self.tokenizer = tok_adapter.TokenizerAdapter(tokenizer)
     self.model_version = model_version
@@ -91,9 +88,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
     self.mesh = mesh
     self.lora_config = mapping_config.lora_config
     self.hbm_utilization = hbm_utilization
-    self.tp = self.mesh.shape["tp"] if "tp" in self.mesh.shape else tp
-    if self.tp <= 0:
-      raise ValueError(f"Invalid tp size {self.tp}.")
+
     self.args = self._vllm_config()
     self.llm = LLM(**self.args)
 
@@ -136,7 +131,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
     args["additional_config"] = {}
     args["model"] = self.model_version
     args["max_model_len"] = self.max_model_len
-    args["tensor_parallel_size"] = self.tp
+    args["tensor_parallel_size"] = self.mesh.shape["tp"]
     args["gpu_memory_utilization"] = self.hbm_utilization
     if self.lora_config is not None:
       args["additional_config"]["lora_config"] = self.lora_config

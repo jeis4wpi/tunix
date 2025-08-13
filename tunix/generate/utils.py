@@ -474,16 +474,9 @@ def transfer_state_with_mappings(
 
   def _extract_layer_from_scanned_tensor(tensor, layer_idx, layer_axis):
     """Extract a specific layer from a scanned tensor."""
-    if layer_axis == 0:
-      return tensor[layer_idx]
-    elif layer_axis == 1:
-      return tensor[:, layer_idx]
-    elif layer_axis == 2:
-      return tensor[:, :, layer_idx]
-    elif layer_axis == 3:
-      return tensor[:, :, :, layer_idx]
-    else:
-      raise ValueError(f'Unsupported layer axis: {layer_axis}')
+    idx = [slice(None)] * tensor.ndim
+    idx[layer_axis] = layer_idx
+    return tensor[tuple(idx)]
 
   def _get_layer_axis_from_sharding_spec(sharding_spec):
     """Determine which axis contains the layer dimension from sharding specification."""
