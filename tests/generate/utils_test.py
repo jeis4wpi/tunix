@@ -230,10 +230,8 @@ class UtilsTest(absltest.TestCase):
 
   def test_transfer_state_with_padding(self):
     # Create source module with smaller head dim
-    src = MockState({"w": MockParam(jnp.ones((2, 4, 64)), value_sharding=None)})
-    dst = MockState(
-        {"w": MockParam(jnp.zeros((2, 4, 128)), value_sharding=None)}
-    )
+    src = MockState({"w": MockParam(jnp.ones((2, 4, 64)))})
+    dst = MockState({"w": MockParam(jnp.zeros((2, 4, 128)))})
 
     mappings = {
         "w": ("w", None),
