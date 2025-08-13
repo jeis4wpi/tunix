@@ -359,23 +359,12 @@ def build_flat_dict(
           else:
             src_parts.append(part)
         actual_src = '.'.join(src_parts)
-        
         # Check if this is a scanned parameter (has 'layer' in sharding spec)
         if sharding and 'layer' in sharding:
-          layer_axis = sharding.index('layer')
-          num_layers = v.value.shape[layer_axis]
-          
-          # Create list of target keys for all layers, sorted by layer id
-          target_list = []
-          for layer_idx in range(num_layers):
-            layer_target = tgt.replace('*', str(layer_idx))
-            target_list.append((layer_idx, layer_target))
-          
-          # Sort by layer id and extract just the target keys
-          target_list.sort(key=lambda x: x[0])
-          sorted_targets = [target for _, target in target_list]
-          
-          new_flat_dict[actual_src] = v, sharding, sorted_targets
+          if actual_src not in new_flat_dict:
+            new_flat_dict[actual_src] = ([], sharding)
+          layer_number = int(matched.groups()[0])
+          new_flat_dict[actual_src][0].append((layer_number, v))
         else:
           # Regular (non-scanned) parameter
           new_flat_dict[actual_src] = v, sharding
@@ -384,7 +373,14 @@ def build_flat_dict(
         break
     # There are no mappings for rng related params.
     if not mapped:
-      logging.warning('!!! No mapping for flat state: %s', keys)
+      logging.warning('!!! No mapping for flat state: %s', path)
+  
+  # Sort layers 
+  for key, (layers, sharding) in new_flat_dict.items():
+    if isinstance(layers, list):
+      layers.sort(key=lambda x: x[0])
+      new_flat_dict[key] = ([layer for _ , layer in layers], sharding)
+      
   return new_flat_dict
 
 
@@ -413,9 +409,8 @@ def transfer_state_with_mappings(
 
   src_flat = src_state.flat_state()
   tgt_flat = dst_state.flat_state()
-  # maps source keys to target tensor(s) and sharding spec
+  # Maps source keys to target tensor(s) and sharding spec
   new_src_dict = build_flat_dict(tgt_flat, key_mappings)
-        
 
   def _process_and_assign_value(value, tgt_param, flat_key, src_keys):
     # Optional transpose
@@ -502,20 +497,16 @@ def transfer_state_with_mappings(
   def _should_skip_parameter(param_key):
     """Check if a parameter should be skipped during transfer."""
     skip_patterns = [
-        'rng',  # JAX NNX RNG states
-        # 'rng.',          # General RNG states  
-        # '.count',        # RNG counters
-        # '.key',          # RNG keys
-        # 'dropout',       # Dropout RNG states
+        'rng', 
     ]
-    
+
     return any(pattern in param_key for pattern in skip_patterns)
 
   def process_entry(src_keys, src_val):
     flat_key = '.'.join(str(k) for k in src_keys)
     
     if flat_key not in new_src_dict:
-      # Skip RNG states and other internal parameters that don't need mapping
+      # Skip RNG states that don't need mapping
       if _should_skip_parameter(flat_key):
           logging.debug('Skipping parameter: %s', flat_key)
       else:
@@ -529,7 +520,7 @@ def transfer_state_with_mappings(
     layer_axis = _get_layer_axis_from_sharding_spec(sharding_spec)
         
     if layer_axis is not None: 
-        # This is a scanned parameter - extract each layer
+        # This is a scanned parameter 
         num_layers = len(tgt_param)
         for layer_idx in range(0, num_layers):
             layer_tensor = _extract_layer_from_scanned_tensor(
@@ -540,7 +531,7 @@ def transfer_state_with_mappings(
                 flat_key, src_keys
             )
     else:
-        # This is a global parameter (not layer-specific)
+        # This is a normal parameter  
         _process_and_assign_value(
             value, tgt_param,
             flat_key, src_keys
