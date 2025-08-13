@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from flax import nnx
 import jax
 from jax import sharding
 import jax.numpy as jnp
@@ -257,8 +256,8 @@ class UtilsTest(absltest.TestCase):
     batch_size = 2
 
     # Create source state with multiple types of parameters:
-    # 1. Scanned weights (layer dim on axis 0) - needs extraction
-    # 2. Scanned biases (layer dim on axis 1) - needs extraction from different axis
+    # 1. Scanned weights (layer dim on axis 0)
+    # 2. Scanned biases (layer dim on axis 1)
     # 3. Regular embedding - no scanning, direct transfer
 
     # Scanned weights: shape (num_layers, embed_dim, vocab_size)
@@ -270,7 +269,8 @@ class UtilsTest(absltest.TestCase):
         axis=0,
     )
 
-    # Scanned biases with layer dim on axis 1: shape (batch_size, num_layers, vocab_size)
+    # Scanned biases with layer dim on axis 1:
+    # shape (batch_size, num_layers, vocab_size)
     scanned_biases = jnp.stack(
         [
             jnp.full((batch_size, vocab_size), (i + 1) * 10, dtype=jnp.float32)
