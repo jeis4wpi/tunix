@@ -368,19 +368,19 @@ def build_flat_dict(
         else:
           # Regular (non-scanned) parameter
           new_flat_dict[actual_src] = v, sharding
-        
+
         mapped = True
         break
     # There are no mappings for rng related params.
     if not mapped:
       logging.warning('!!! No mapping for flat state: %s', path)
-  
-  # Sort layers 
+
+  # Sort layers
   for key, (layers, sharding) in new_flat_dict.items():
     if isinstance(layers, list):
       layers.sort(key=lambda x: x[0])
-      new_flat_dict[key] = ([layer for _ , layer in layers], sharding)
-      
+      new_flat_dict[key] = ([layer for _, layer in layers], sharding)
+
   return new_flat_dict
 
 
@@ -472,70 +472,65 @@ def transfer_state_with_mappings(
     )
     tgt_param.value = new_value
 
-
   def _extract_layer_from_scanned_tensor(tensor, layer_idx, layer_axis):
-      """Extract a specific layer from a scanned tensor."""
-      if layer_axis == 0:
-          return tensor[layer_idx]
-      elif layer_axis == 1:
-          return tensor[:, layer_idx]
-      elif layer_axis == 2:
-          return tensor[:, :, layer_idx]
-      elif layer_axis == 3:
-          return tensor[:, :, :, layer_idx]
-      else:
-          raise ValueError(f"Unsupported layer axis: {layer_axis}")
+    """Extract a specific layer from a scanned tensor."""
+    if layer_axis == 0:
+      return tensor[layer_idx]
+    elif layer_axis == 1:
+      return tensor[:, layer_idx]
+    elif layer_axis == 2:
+      return tensor[:, :, layer_idx]
+    elif layer_axis == 3:
+      return tensor[:, :, :, layer_idx]
+    else:
+      raise ValueError(f'Unsupported layer axis: {layer_axis}')
 
   def _get_layer_axis_from_sharding_spec(sharding_spec):
-      """Determine which axis contains the layer dimension from sharding specification."""
-      if isinstance(sharding_spec, (list, tuple)):
-          for i, spec in enumerate(sharding_spec):
-              if spec == 'layer':
-                  return i
-      return None
-  
+    """Determine which axis contains the layer dimension from sharding specification."""
+    if isinstance(sharding_spec, (list, tuple)):
+      for i, spec in enumerate(sharding_spec):
+        if spec == 'layer':
+          return i
+    return None
+
   def _should_skip_parameter(param_key):
     """Check if a parameter should be skipped during transfer."""
     skip_patterns = [
-        'rng', 
+        'rng',
     ]
 
     return any(pattern in param_key for pattern in skip_patterns)
 
   def process_entry(src_keys, src_val):
     flat_key = '.'.join(str(k) for k in src_keys)
-    
+
     if flat_key not in new_src_dict:
       # Skip RNG states that don't need mapping
       if _should_skip_parameter(flat_key):
-          logging.debug('Skipping parameter: %s', flat_key)
+        logging.debug('Skipping parameter: %s', flat_key)
       else:
-          logging.error('!!! No mapping for source key: %s', flat_key)
-          return
+        logging.error('!!! No mapping for source key: %s', flat_key)
+        return
       return
-          
+
     tgt_param, sharding_spec = new_src_dict[flat_key]
     value = src_val.value
 
     layer_axis = _get_layer_axis_from_sharding_spec(sharding_spec)
-        
-    if layer_axis is not None: 
-        # This is a scanned parameter 
-        num_layers = len(tgt_param)
-        for layer_idx in range(0, num_layers):
-            layer_tensor = _extract_layer_from_scanned_tensor(
-                value, layer_idx, layer_axis
-            )
-            _process_and_assign_value(
-                layer_tensor, tgt_param[layer_idx], 
-                flat_key, src_keys
-            )
-    else:
-        # This is a normal parameter  
-        _process_and_assign_value(
-            value, tgt_param,
-            flat_key, src_keys
+
+    if layer_axis is not None:
+      # This is a scanned parameter
+      num_layers = len(tgt_param)
+      for layer_idx in range(0, num_layers):
+        layer_tensor = _extract_layer_from_scanned_tensor(
+            value, layer_idx, layer_axis
         )
+        _process_and_assign_value(
+            layer_tensor, tgt_param[layer_idx], flat_key, src_keys
+        )
+    else:
+      # This is a normal parameter
+      _process_and_assign_value(value, tgt_param, flat_key, src_keys)
 
   # Loop through each parameter
   for src_keys, src_val in src_flat:
