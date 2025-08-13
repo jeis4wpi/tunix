@@ -67,7 +67,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       model_version: str,
       mapping_config: MappingConfig,
       hbm_utilization: Optional[float] = 0.3,
-      tp: int = -1
+      tp: int = -1,
   ):
     """Initializes the VllmSampler.
 
