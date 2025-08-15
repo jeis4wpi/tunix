@@ -66,6 +66,7 @@ import kagglehub
 import optax
 from orbax import checkpoint as ocp
 from qwix import lora
+from etils import epath
 # import tensorflow_datasets as tfds
 # from tqdm.auto import tqdm
 # from tunix.generate import sampler as sampler_lib
@@ -91,8 +92,8 @@ to train the model for longer.
 # ====== Data ======
 # TRAIN_DATA_DIR = "/home/mazumdera_google_com/tunix/llama3/data/train"
 # TEST_DATA_DIR = "/home/mazumdera_google_com/tunix/llama3/data/test"
-TRAIN_DATA_DIR = "./data/train"
-TEST_DATA_DIR = "./data/test"
+TRAIN_DATA_DIR = "./data/train_gemma_2b"
+TEST_DATA_DIR = "./data/test_gemma_2b"
 TRAIN_FRACTION = 1.0
 
 # ====== LoRA ======
@@ -269,7 +270,7 @@ import sys
 import os
 
 # add the parent directory (one level up) to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '../../maxtext')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '/home/mazumdera_google_com/maxtext')))
 
 # ! pip install -r ../../maxtext/requirements.txt
 
@@ -317,19 +318,47 @@ def get_ref_maxtext_model(config):
     sharded_state = create_sharded_state()
     model = nnx.merge(graphdef, sharded_state)
 
-    target_for_restore = jax.tree.map(
-        lambda v: v.value, sharded_state, is_leaf=lambda n: isinstance(n, nnx.Variable)
-    )
-    checkpoint = mt.checkpointing.load_params_from_path(
-        load_parameters_from_path=config.load_parameters_path,
-        abstract_unboxed_params=target_for_restore,
-        checkpoint_storage_concurrent_gb=None,
-    )
-    # checkpoint = ocp.StandardCheckpointer().restore(
-    #     "gs://maxtext-gemma/2b/2025-08-05-04-37/0/items", target=target_for_restore
-    # )
-    if checkpoint:
-        nnx.update(model, checkpoint)
+    if config.load_parameters_path:
+        target_for_restore = jax.tree.map(
+            lambda v: v.value, sharded_state, is_leaf=lambda n: isinstance(n, nnx.Variable)
+        )
+
+
+        try:
+            ckptr = ocp.Checkpointer(
+                ocp.PyTreeCheckpointHandler(
+                    restore_concurrent_gb=None,
+                    save_concurrent_gb=None,
+                    use_ocdbt=True,
+                    use_zarr3=True,
+                )
+            )
+            # This is a memory optimization. We don't want to restore the entire checkpoint - only the params.
+            # Rather than pass the entire abstract state, which could unnecessarily restore opt_state and such and waste
+            # memory, we instead specify here that we are just restoring the params field of the checkpoint
+            # (which itself may be a dictionary containing a key named 'params').
+            restore_args = ocp.checkpoint_utils.construct_restore_args(target_for_restore)
+            restored = ckptr.restore(
+                epath.Path(config.load_parameters_path),
+                item={"params": {"params": target_for_restore}},
+                transforms={},
+                restore_args={"params": {"params": restore_args}},
+            )
+            checkpoint = restored["params"]["params"]
+
+            # checkpoint = mt.checkpointing.load_params_from_path(
+            #     load_parameters_from_path=config.load_parameters_path,
+            #     abstract_unboxed_params=target_for_restore,
+            #     checkpoint_storage_concurrent_gb=None,
+            # )
+            # checkpoint = ocp.StandardCheckpointer().restore(
+            #     "gs://maxtext-gemma/2b/2025-08-05-04-37/0/items", target=target_for_restore
+            # )
+            if checkpoint:
+                nnx.update(model, checkpoint)
+
+        except Exception as e:
+            print(f"Failed: {e}")
 
     tunix_model = TunixMaxTextLlama(
             base_model=model,
@@ -345,23 +374,24 @@ def get_ref_maxtext_model(config):
 from MaxText.integration.tunix.tunix_adaptor import TunixMaxTextLlama
 
 config_ref = pyconfig.initialize(
-      ["", "../../maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
+      ["", "/home/mazumdera_google_com/maxtext/MaxText/configs/base.yml"], #TODO: @mazumdera: why decode.py?
       base_output_directory="gs://dummy_output_dir",  # This is not used in Tunix.
       run_name="test-tunix-maxtext-llama3.1-8b",
-      # run_name="test-tunix-maxtext-llama3.1-8b",
+    #   run_name="test-tunix-maxtext-gemma-2b",
       # dataset_path=we use Tunix's dataset
       #TODO: @mazumdera: change this to use checkpoint
       tokenizer_type="tiktoken",
       tokenizer_path="assets/tokenizer_llama3.tiktoken",
+    #   tokenizer_path="assets/tokenizer.gemma",
       load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
-      # tokenizer_path="assets/tokenizer.gemma",
+    #   load_parameters_path="gs://maxtext-gemma/2b/2025-08-05-04-37/0/items",
       per_device_batch_size=1,
       max_prefill_predict_length=4,
       max_target_length=16,
       steps=10,
       async_checkpointing="false",
       model_name="llama3.1-8b",
-      # model_name="gemma-2b",
+    #   model_name="gemma-2b",
       checkpoint_period=5,
       skip_jax_distributed_system="true",
       weight_dtype="bfloat16",
@@ -374,81 +404,93 @@ config_ref = pyconfig.initialize(
       opt_type="sgd",
   )
 
-llama_8b, mesh, model_config = get_ref_maxtext_model(config_ref)
+llama3_1_8b, mesh, model_config = get_ref_maxtext_model(config_ref)
 # gemma_maxtext_nnx = nnx.bridge.ToNNX(gemma)
 # Instead of:
-nnx.display(llama_8b)
+nnx.display(llama3_1_8b)
 
-# Use:
-print("Model initialized successfully")
-print(f"Model mesh shape: {mesh.shape}")
-print(f"Model config: {model_config}")
-print("HBM usage after loading ref model:")
-show_hbm_usage()
-# # Policy model
-# lora_gemma = get_lora_model(gemma, mesh=mesh)
-# nnx.display(lora_gemma)
+_maxtext_state_flatten = nnx.state(llama3_1_8b).flat_state()
+maxtext_state_flatten = {
+    '.'.join(str(key) for key in keys): v for keys, v in _maxtext_state_flatten
+}
 
-import jax.numpy as jnp
-import os
-from tunix.models.gemma import gemma as gemma_lib
-from tunix.models.gemma import data as data_lib
+for key, value in maxtext_state_flatten.items():
+   print(key, value.shape, value.sharding)
 
-TEMP_BATCH_SIZE = 8
+print(f"maxtext_state_flatten[base.token_embedder.embedding].value={maxtext_state_flatten['base.token_embedder.embedding'].value}")
 
-# Assuming gemma is a pre-loaded instance of gemma_lib.Transformer
-# and data_lib is available.
-gemma_tokenizer = data_lib.GemmaTokenizer(
-    os.path.join(kaggle_ckpt_path, "tokenizer.model")
-)
 
-tokens = gemma_tokenizer.encode("I love to ")
-# tokens.append(jnp.repeat(jnp.array([gemma_tokenizer.eos_id()]),2048-len(tokens),axis=0))  
-# tokens = [gemma_tokenizer.bos_id()]+gemma_tokenizer.encode("The color of the sky is blue but")
+# # Use:
+# print("Model initialized successfully")
+# print(f"Model mesh shape: {mesh.shape}")
+# print(f"Model config: {model_config}")
+# print("HBM usage after loading ref model:")
+# show_hbm_usage()
+# # # Policy model
+# # lora_gemma = get_lora_model(gemma, mesh=mesh)
+# # nnx.display(lora_gemma)
 
-repeated_tokens = jnp.repeat(jnp.array(tokens)[None, :], TEMP_BATCH_SIZE, axis=0)
-positions = jnp.repeat(jnp.arange(0, len(tokens))[None, :], TEMP_BATCH_SIZE, axis=0)
+# import jax.numpy as jnp
+# import os
+# from tunix.models.gemma import gemma as gemma_lib
+# from tunix.models.gemma import data as data_lib
 
-# --- FIX STARTS HERE ---
+# TEMP_BATCH_SIZE = 8
 
-# The Gemma model requires an attention mask. Passing `None` causes an error.
-# We need to create a causal attention mask for the prefill step.
+# # Assuming gemma is a pre-loaded instance of gemma_lib.Transformer
+# # and data_lib is available.
+# gemma_tokenizer = data_lib.GemmaTokenizer(
+#     os.path.join(kaggle_ckpt_path, "tokenizer.model")
+# )
 
-# 1. Create a boolean mask for the input tokens (True for valid tokens, False for padding).
-#    Assuming `gemma_tokenizer.pad_id()` exists. If not, and there's no padding,
-#    `jnp.ones_like(repeated_tokens, dtype=jnp.bool_)` would also work.
-#    A common pad_id is 0.
-pad_id = gemma_tokenizer.pad_id()
-input_mask = (repeated_tokens != pad_id)
+# tokens = gemma_tokenizer.encode("I love to")
+# # tokens.append(jnp.repeat(jnp.array([gemma_tokenizer.eos_id()]),2048-len(tokens),axis=0))  
+# # tokens = [gemma_tokenizer.bos_id()]+gemma_tokenizer.encode("The color of the sky is blue but")
 
-# 2. Create a causal attention mask from the input mask.
-#    This prevents the model from attending to future tokens.
-attention_mask = gemma_lib.make_causal_attn_mask(input_mask)
+# repeated_tokens = jnp.repeat(jnp.array(tokens)[None, :], TEMP_BATCH_SIZE, axis=0)
+# positions = jnp.repeat(jnp.arange(0, len(tokens))[None, :], TEMP_BATCH_SIZE, axis=0)
 
-# 3. Call the model with the correct attention mask.
-gemma_output_logits, _ = llama_8b(repeated_tokens, positions, cache=None, attention_mask=attention_mask)  # Test the model to ensure it works
+# # --- FIX STARTS HERE ---
 
-# --- FIX ENDS HERE ---
+# # The Gemma model requires an attention mask. Passing `None` causes an error.
+# # We need to create a causal attention mask for the prefill step.
 
-# The commented out line below would also need a proper attention_mask.
-# For example:
-# dummy_tokens = jnp.ones((TEMP_BATCH_SIZE, 16), jnp.int32)
-# dummy_positions = jnp.repeat(jnp.arange(0,16)[None,:], TEMP_BATCH_SIZE, axis=0)
-# dummy_mask = gemma_lib.make_causal_attn_mask(jnp.ones_like(dummy_tokens, dtype=jnp.bool_))
-# gemma_output = gemma(dummy_tokens, dummy_positions, cache=None, attention_mask=dummy_mask)
+# # 1. Create a boolean mask for the input tokens (True for valid tokens, False for padding).
+# #    Assuming `gemma_tokenizer.pad_id()` exists. If not, and there's no padding,
+# #    `jnp.ones_like(repeated_tokens, dtype=jnp.bool_)` would also work.
+# #    A common pad_id is 0.
+# pad_id = gemma_tokenizer.pad_id()
+# input_mask = (repeated_tokens != pad_id)
 
-print("Successfully ran the model!")
-print("Output shape:", gemma_output_logits.shape)
+# # 2. Create a causal attention mask from the input mask.
+# #    This prevents the model from attending to future tokens.
+# attention_mask = gemma_lib.make_causal_attn_mask(input_mask)
 
-print(f"Tokens: {tokens}")
-print(f"positions: {positions}")
+# # 3. Call the model with the correct attention mask.
+# gemma_output_logits, _ = llama3_1_8b(repeated_tokens, positions, cache=None, attention_mask=attention_mask)  # Test the model to ensure it works
 
-last_token_logits = gemma_output_logits[:, -1, :]
-predicted_token_id = jnp.argmax(last_token_logits, axis=-1)
-# Decode the token ID to see the predicted word.
-# Since TEMP_BATCH_SIZE is 1, we can just grab the first element.
-next_token_id = predicted_token_id[0]
-predicted_token_text = gemma_tokenizer.decode([int(next_token_id)])
+# # --- FIX ENDS HERE ---
 
-print(f"\nPredicted next token ID: {next_token_id}")
-print(f"Predicted next token: '{predicted_token_text}'")
+# # The commented out line below would also need a proper attention_mask.
+# # For example:
+# # dummy_tokens = jnp.ones((TEMP_BATCH_SIZE, 16), jnp.int32)
+# # dummy_positions = jnp.repeat(jnp.arange(0,16)[None,:], TEMP_BATCH_SIZE, axis=0)
+# # dummy_mask = gemma_lib.make_causal_attn_mask(jnp.ones_like(dummy_tokens, dtype=jnp.bool_))
+# # gemma_output = gemma(dummy_tokens, dummy_positions, cache=None, attention_mask=dummy_mask)
+
+# print("Successfully ran the model!")
+# print("Output shape:", gemma_output_logits.shape)
+
+# print(f"Tokens: {tokens}")
+# print(f"positions: {positions}")
+
+# last_token_logits = gemma_output_logits[:, -1, :]
+# print(f"Last token logits: {last_token_logits}")
+# predicted_token_id = jnp.argmax(last_token_logits, axis=-1)
+# # Decode the token ID to see the predicted word.
+# # Since TEMP_BATCH_SIZE is 1, we can just grab the first element.
+# next_token_id = predicted_token_id[0]
+# predicted_token_text = gemma_tokenizer.decode([int(next_token_id)])
+
+# print(f"\nPredicted next token ID: {next_token_id}")
+# print(f"Predicted next token: '{predicted_token_text}'")
