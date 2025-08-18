@@ -370,7 +370,6 @@ class GrpoLearner:
     def _put_list_of_examples_to_data_queue():
       if not async_loading:
         data_queue.put(common.RepeatIterable(example_list, batch_repeat))
-        
       elif batch_repeat > 1:
         # Since we have already loaded the batch in data_queue once, we only
         # need to repeat batch_repeat - 1 times.
