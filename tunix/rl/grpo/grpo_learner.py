@@ -20,6 +20,8 @@ from concurrent import futures
 import dataclasses
 from typing import Callable, Dict, Iterable, Iterator, List, Sequence
 
+import logging
+
 import flax
 import jax
 import jax.numpy as jnp
@@ -369,10 +371,12 @@ class GrpoLearner:
     def _put_list_of_examples_to_data_queue():
       if not async_loading:
         data_queue.put(common.RepeatIterable(example_list, batch_repeat))
+        print("size of data_queue after put: %s", data_queue.qsize())
       elif batch_repeat > 1:
         # Since we have already loaded the batch in data_queue once, we only
         # need to repeat batch_repeat - 1 times.
         data_queue.put(common.RepeatIterable(example_list, batch_repeat - 1))
+        print("size of data_queue after put: %s", data_queue.qsize())
 
     try:
       while True:

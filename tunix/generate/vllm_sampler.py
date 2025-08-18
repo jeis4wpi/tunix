@@ -15,6 +15,7 @@
 """Sampler for vLLM-style autoregressive decoding using JAX and NNX models."""
 
 import dataclasses
+import math
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -121,12 +122,17 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
     else:
       raise NotImplementedError("Only support in memory weight sync as of now.")
 
+  def _find_tp_size(self, mesh: jax.sharding.Mesh) -> int:
+    """Finds the tensor parallel size from the mesh."""
+    # since vllm doesn't support DP yet, simply return the total rank size.
+    return math.prod(mesh.shape.values())
+
   def _vllm_config(self, config: VllmConfig):
     args = {}
     args["additional_config"] = {}
     args["model"] = config.model_version
     args["max_model_len"] = config.max_model_len
-    args["tensor_parallel_size"] = config.mesh.shape["tp"]
+    args["tensor_parallel_size"] = self._find_tp_size(config.mesh)
     args["gpu_memory_utilization"] = config.hbm_utilization
     if config.mapping_config.lora_config is not None:
       args["additional_config"]["lora_config"] = (

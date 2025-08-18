@@ -40,9 +40,6 @@ from tunix.rl.rollout import base_rollout
 from tunix.rl.rollout import vanilla_rollout
 from tunix.sft import peft_trainer
 
-from flax import linen as nn
-import os
-import gc
 
 ModelOrPath = Union[nnx.Module, str]
 
@@ -123,16 +120,38 @@ class RLCluster:
       cluster_config: ClusterConfig,
   ):
     self.cluster_config = cluster_config
-    r2m = cluster_config.role_to_mesh
-    self.train_actor = self._load_model(actor, r2m[Role.ACTOR])
-    if self.cluster_config.rollout_engine == "vanilla":
-      # vLLM has it's own model loading logic. Only load for vanilla rollout.
-      self.rollout_actor = self._load_model(actor, r2m[Role.ROLLOUT])
-    self.critic = self._load_model(critic, r2m[Role.CRITIC]) if critic else None
-    self.reference = (
-        self._load_model(reference, r2m[Role.REFERENCE]) if reference else None
+    self.r2m = cluster_config.role_to_mesh
+    self._init_backbone_sharing_map(actor, reference)
+
+    self._default_memory_kind = jax.devices()[0].default_memory().kind
+    self.train_actor = self._load_model(actor, self.r2m[Role.ACTOR])
+
+    if Role.ROLLOUT in self._backbone_sharing_map[Role.ACTOR]:
+      self.rollout_actor = self.train_actor
+    else:
+      self.rollout_actor = self._load_model(actor, self.r2m[Role.ROLLOUT])
+
+    if reference:
+      self.reference = self._load_model(reference, self.r2m[Role.REFERENCE])
+      if Role.REFERENCE in self._backbone_sharing_map[Role.ACTOR]:
+        if not utils.is_sharing_backbone(self.reference, self.train_actor):
+          logging.warning(
+              "Reference model and actor model are colocated but do not share"
+              " the same backbone. This will result in an unnecessary model"
+              " copy and increased HBM usage."
+          )
+    else:
+      self.reference = None
+    self.critic = (
+        self._load_model(critic, self.r2m[Role.CRITIC]) if critic else None
     )
-    self.reward = self._load_model(reward, r2m[Role.REWARD]) if reward else None
+    if Role.CRITIC in self._backbone_sharing_map[Role.ACTOR]:
+      critic_state = nnx.state(self.train_actor, filterlib.Not(nnx.LoRAParam))
+      nnx.update(self.critic, critic_state)
+    self.reward = (
+        self._load_model(reward, self.r2m[Role.REWARD]) if reward else None
+    )
+
     self.tokenizer = tokenizer
     self._init_cluster()
     gc.collect()
@@ -170,7 +189,7 @@ class RLCluster:
     self._propagate_backbone_sharing_map()
 
   def _load_model(self, model_or_path: ModelOrPath, mesh: Mesh) -> nnx.Module:
-    """Loads model with given mesh.
+    """Loads model with given mesh to the given memory_kind.
 
     If input is already an NNX model, check if the model is sharded on the
     target mesh. If not, reshard the model.
@@ -182,33 +201,41 @@ class RLCluster:
     Returns:
       The model loaded on the given mesh.
     """
-    try:
-      if isinstance(model_or_path, nnx.Module):
-        model_mesh = utils.get_pytree_mesh_info(nnx.state(model_or_path))
-        if not mesh.empty and model_mesh != mesh:
-          logging.warning("Resharding model from %s to %s", model_mesh, mesh)
-          graph, state = nnx.split(model_or_path)
-          dst_shardings = nn.logical_to_mesh_sharding(
-              nnx.get_partition_spec(state),
-              mesh,
-          )
-          model_or_path = nnx.merge(
-              graph,
-              reshard.reshard_pytree(
-                  state,
-                  dst_shardings,
-              ),
-          )
-        return model_or_path
-      else:
-        raise NotImplementedError("Loading from path is not supported yet.")
-    except Exception as e:
-      logging.exception(
-          "Something went wrong while loading model %s on mesh %s.",
-          model_or_path,
-          mesh,
+    if isinstance(model_or_path, nnx.Module):
+      model_mesh = utils.get_pytree_mesh_info(nnx.state(model_or_path))
+      original_shardings = jax.tree_util.tree_map(
+          lambda x: x.sharding, nnx.state(model_or_path)
       )
-      raise
+      is_on_device = jax.tree_util.tree_reduce(
+          operator.or_,
+          jax.tree.map(
+              lambda x: x.memory_kind == self._default_memory_kind,
+              original_shardings,
+          ),
+      )
+      if not mesh.empty and model_mesh != mesh:
+        logging.warning("Resharding model from %s to %s", model_mesh, mesh)
+        graph, state = nnx.split(model_or_path)
+        dst_shardings = jax.tree_util.tree_map(
+            lambda x: jax.sharding.NamedSharding(
+                mesh,
+                x,
+                memory_kind=self._default_memory_kind
+                if is_on_device
+                else "pinned_host",
+            ),
+            nnx.get_partition_spec(state),
+        )
+        model_or_path = nnx.merge(
+            graph, reshard.reshard_pytree(state, dst_shardings)
+        )
+      if is_on_device and self.cluster_config.offload_to_cpu:
+        graph, state = nnx.split(model_or_path)
+        new_params = utils.put_params_on_memory_kind(state, "pinned_host")
+        model_or_path = nnx.merge(graph, new_params)
+      return model_or_path
+    else:
+      raise NotImplementedError("Loading from path is not supported yet.")
 
   def _init_cluster(self):
     """Initializes the RL cluster."""

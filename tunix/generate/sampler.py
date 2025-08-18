@@ -339,6 +339,7 @@ class Sampler(base_sampler.BaseSampler):
 
     done = jnp.zeros((batch_size,), dtype=jnp.bool_)
 
+    print("before init kv cache...")
     cache = _init_cache(
         n_layers=self.cache_config.num_layers,
         cache_size=self.cache_config.cache_size,
@@ -347,6 +348,7 @@ class Sampler(base_sampler.BaseSampler):
         head_dim=self.cache_config.head_dim,
         dtype=self.dtype,
     )
+    print("after init kv cache...")
 
     if include_logits:
       logits_buffer = jnp.zeros(
@@ -371,7 +373,7 @@ class Sampler(base_sampler.BaseSampler):
     if sampling_mode[0] is None:
       sampling_mode[0] = 'greedy'
 
-    logging.debug('Using sampling mode: %s', sampling_mode[0])
+    print('Using sampling mode: %s', sampling_mode[0])
 
     return _SamplingState(
         decoding_step=num_input_tokens - 1,
@@ -679,6 +681,7 @@ class Sampler(base_sampler.BaseSampler):
         forbidden_token_ids.extend(token_id)
       forbidden_token_ids = tuple(forbidden_token_ids)
 
+    print("forbidden_token_ids encoded")
     tokens = [self.tokenize(x) for x in input_strings]
     max_tokens_length = max(len(x) for x in tokens)
     if max_prompt_length is None or max_prompt_length < max_tokens_length:
@@ -692,6 +695,7 @@ class Sampler(base_sampler.BaseSampler):
         )
         for x in tokens
     ])
+    print("all_input_ids prepared")
     total_sampling_steps = max_prompt_length + total_generation_steps
     if total_sampling_steps > self.cache_config.cache_size:
       raise ValueError(
@@ -703,6 +707,7 @@ class Sampler(base_sampler.BaseSampler):
       seed = jax.random.PRNGKey(0)
     elif isinstance(seed, int):
       seed = jax.random.PRNGKey(seed)
+    print("before init sampling state...")
     sampling_state = self.init_sample_state(
         all_input_ids,
         include_logits=return_logits,
@@ -714,15 +719,20 @@ class Sampler(base_sampler.BaseSampler):
         seed=seed,
         beam_size=beam_size,
     )
+    print("finished initializing sampling state, now prefill...")
     sampling_state = self._compiled_prefill_fn(
         self._flattened_transformer_state, sampling_state
     )
+    print("finished prefill, now block until ready...")
+    jax.block_until_ready(sampling_state)
+    print("finished blocking until ready, now decode...")
 
     sampling_state = self._compiled_decode_fn(
         self._flattened_transformer_state, sampling_state
     )
+    print("finished decoding, now finalize...")
     token_buffers = sampling_state.token_buffer
-    print("token_buffers={token_buffers}")
+    print(f"token_buffers={token_buffers}")
     logits_buffers = sampling_state.logits_buffer
 
     if sampling_state.sampling_mode == 'beam_search':
