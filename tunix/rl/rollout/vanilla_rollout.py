@@ -51,7 +51,6 @@ class VanillaRollout(base_rollout.BaseRollout):
       **kwargs,
   ) -> base_rollout.RolloutOutput:
     """Generates samples from the model."""
-    print("vanilla_rollout generate called")
     output = self._sampler(
         input_strings=prompts,
         total_generation_steps=rollout_config.max_tokens_to_generate,
@@ -63,7 +62,6 @@ class VanillaRollout(base_rollout.BaseRollout):
         seed=rollout_config.seed,
         pad_output=True,
     )
-    print("vanilla_rollout generate call returned")
     return base_rollout.RolloutOutput(
         text=output.text,
         logits=output.logits,
