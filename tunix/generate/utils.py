@@ -388,6 +388,7 @@ def transfer_state_with_mappings(
     src_state,
     dst_state,
     key_mappings,
+    key_mapping_hook_fns=None,
     transpose_keys=None,
     reshard_fn=None,
 ):
@@ -399,6 +400,9 @@ def transfer_state_with_mappings(
     key_mappings: A dictionary defining how to map keys from the source state to
       the target state. The keys of the dictionary are the source keys, and the
       values are tuples containing the target key and the sharding information.
+    key_mapping_hook_fns: A dictionary mapping keys to hook functions that
+      modify the values before assignment. The hook fn will be called after
+      the transpose operation if transpose were to be applied.
     transpose_keys: A dictionary defining which keys to transpose and the
       corresponding axes to transpose.
     reshard_fn: A function to shard the value.
@@ -420,6 +424,10 @@ def transfer_state_with_mappings(
         and 'lora' not in src_keys[-1]
     ):
       value = jnp.transpose(value, transpose_keys[src_keys[-1]])
+
+    # Optional hook fn
+    if key_mapping_hook_fns and flat_key in key_mapping_hook_fns:
+      value = key_mapping_hook_fns[flat_key](value)
 
     # Shape check and general padding support
     if tgt_param.value.shape != value.shape:
@@ -495,11 +503,10 @@ def transfer_state_with_mappings(
     return None
 
   def _should_skip_parameter(param_key):
-    """Check if a parameter should be skipped during transfer."""
+    """Check if a parameter should be skipped."""
     skip_patterns = [
         'rng',
     ]
-
     return any(pattern in param_key for pattern in skip_patterns)
 
   def process_entry(src_keys, src_val):
@@ -538,3 +545,47 @@ def transfer_state_with_mappings(
     process_entry(src_keys, src_val)
 
   return dst_state.from_flat_path(tgt_flat)
+
+
+def verify_state_closeness(golden_state, state, atol=1e-2):
+  """Check if the golden NNX state is close to the other NNX state.
+  Helper function for validating weight mapping correctness.
+  """
+  golden_state_flatten = {
+      '.'.join(str(key) for key in keys): v
+      for keys, v in golden_state.flat_state()
+  }
+
+  state_flatten = {
+      '.'.join(str(key) for key in keys): v for keys, v in state.flat_state()
+  }
+
+  # Check that keys match
+  if not golden_state_flatten.keys() == state_flatten.keys():
+    logging.info('Keys do not match.')
+    return False
+
+  # Check that weights match
+  matched = True
+  for key in golden_state_flatten.keys():
+
+    if golden_state_flatten[key].value.shape != state_flatten[key].value.shape:
+      logging.info(
+          'Shape mismatch for key %s: golden %s, loaded %s',
+          key,
+          golden_state_flatten[key].value.shape,
+          state_flatten[key].value.shape,
+      )
+      matched = False
+      continue
+
+    if not jax.numpy.allclose(
+        golden_state_flatten[key].value, state_flatten[key].value, atol=atol
+    ):
+      logging.info('Weights for key {} do not match.'.format(key))
+      logging.info(
+          'Golden state:', golden_state_flatten[key].value.ravel()[:10]
+      )
+      logging.info('Loaded state:', state_flatten[key].value.ravel()[:10])
+      matched = False
+  return matched

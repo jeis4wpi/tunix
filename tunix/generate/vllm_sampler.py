@@ -38,6 +38,7 @@ os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
 @dataclasses.dataclass
 class MappingConfig:
   to_hf_mappings: Optional[Dict[str, str]]
+  to_hf_hook_fns: Optional[Dict[str, callable]]
   lora_to_hf_mappings: Optional[Dict[str, str]]
   to_hf_transpose_keys: Optional[Dict[str, Tuple[int, ...]]]
   lora_config: Optional[Dict[str, Any]]
@@ -90,6 +91,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
 
     self.mappings = config.mapping_config.to_hf_mappings
     self.to_hf_transpose_keys = config.mapping_config.to_hf_transpose_keys
+    self.to_hf_hook_fns = config.mapping_config.to_hf_hook_fns
 
     # TODO(b/434959964) It's not taking effect until vLLM Jax backend support
     # lora.
@@ -98,6 +100,8 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
         and config.mapping_config.lora_to_hf_mappings is not None
     ):
       self.mappings |= config.mapping_config.lora_to_hf_mappings
+    
+    self.copied_original_state = jax.tree.map(jnp.copy, self.transformer_state)
 
   # TODO(b/434969743): Optimize weight sharing between trainer and vllm sampler.
   # TODO(b/434975493): Consider Release KV cache on the fly
@@ -107,13 +111,18 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       filter_types: Optional[Tuple[Any, ...]] = None,
   ):
     del filter_types
+    print("update_params called...")
     utils.transfer_state_with_mappings(
         src_state=updated_weights,
         dst_state=self.transformer_state,
         key_mappings=self.mappings,
+        key_mapping_hook_fns=self.to_hf_hook_fns,
         transpose_keys=self.to_hf_transpose_keys,
         reshard_fn=reshard.reshard_pytree,
     )
+    print("done on update_params... verify the weights are updated")
+    utils.verify_state_closeness(self.copied_original_state, self.transformer_state)
+
 
   def load_checkpoint(self, path_or_weights: str | jaxtyping.PyTree):
     # TODO(b/434741253): Consider support orbax checkpoint loading
