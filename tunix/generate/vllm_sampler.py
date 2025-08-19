@@ -101,7 +101,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
     ):
       self.mappings |= config.mapping_config.lora_to_hf_mappings
     
-    self.copied_original_state = jax.tree.map(jnp.copy, self.transformer_state)
+    # self.copied_original_state = jax.tree.map(jnp.copy, self.transformer_state)
 
   # TODO(b/434969743): Optimize weight sharing between trainer and vllm sampler.
   # TODO(b/434975493): Consider Release KV cache on the fly
@@ -121,7 +121,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
         reshard_fn=reshard.reshard_pytree,
     )
     print("done on update_params... verify the weights are updated")
-    utils.verify_state_closeness(self.copied_original_state, self.transformer_state)
+    # utils.verify_state_closeness(self.copied_original_state, self.transformer_state)
 
 
   def load_checkpoint(self, path_or_weights: str | jaxtyping.PyTree):

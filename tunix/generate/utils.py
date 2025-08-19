@@ -24,6 +24,7 @@ from flax import nnx
 import jax
 from jax import lax
 import jax.numpy as jnp
+import numpy as np
 
 
 def compute_attention_masks(
