@@ -147,6 +147,8 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       args["additional_config"]["lora_config"] = (
           config.mapping_config.lora_config
       )
+    args["max_num_batched_tokens"] = 2048
+    args["max_num_seqs"] = 2
     return args
 
   @property

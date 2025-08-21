@@ -475,12 +475,12 @@ def transfer_state_with_mappings(
 
     # Type cast if needed
     if tgt_param.value.dtype != value.dtype:
-      logging.warning(
-          'Type mismatch on %s: %s -> %s',
-          flat_key,
-          value.dtype,
-          tgt_param.value.dtype,
-      )
+      # logging.warning(
+      #     'Type mismatch on %s: %s -> %s',
+      #     flat_key,
+      #     value.dtype,
+      #     tgt_param.value.dtype,
+      # )
       value = value.astype(tgt_param.value.dtype)
 
     # Apply resharding if provided

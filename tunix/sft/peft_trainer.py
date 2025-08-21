@@ -363,7 +363,7 @@ class PeftTrainer:
         mesh = pxla.thread_resources.env.physical_mesh
         self._shard_optimizer(mesh)
         self._jitted_train_step_fn = nnx.jit(
-            train_step, donate_argnames=("optimizer",)
+            train_step, donate_argnames=("model", "optimizer",)
         )
         self._jitted_eval_step_fn = nnx.jit(
             eval_step, donate_argnames=("model",)
@@ -492,9 +492,7 @@ class PeftTrainer:
     with time_measure("Train loop"):
       while True:
         self._prof.maybe_activate(self._train_steps)
-        with jax.profiler.StepTraceAnnotation(
-            "train", step_num=self._train_steps
-        ):
+        with jax.profiler.TraceAnnotation("peft_train"):
           train_example = None
           if self.data_hooks:
             train_example = self.data_hooks.load_next_train_batch(self)

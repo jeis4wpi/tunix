@@ -389,12 +389,7 @@ class GrpoLearner:
             example,
         )  # [B] -> [B * G]
 
-        with jax.profiler.StepTraceAnnotation(
-            "sampler",
-            step_num=self._train_steps
-            if mode == metrics_logger.Mode.TRAIN
-            else self._eval_steps,
-        ):
+        with jax.profiler.TraceAnnotation("sampler"):
           advantage = self._generate_and_compute_advantage(example, mode)
         if async_loading:
           data_queue.put([advantage])
@@ -483,10 +478,9 @@ class GrpoLearner:
             mode=metrics_logger.Mode.TRAIN,
         )
         curr_eval_ds = None
-        with jax.profiler.StepTraceAnnotation(
-            "trainer", step_num=initial_train_steps
-        ):
+        with jax.profiler.TraceAnnotation("trainer"):
           while True:
+            utils.show_hbm_usage()
             curr_train_ds = train_data_queue.get(block=True)
             if curr_train_ds is None:
               break
@@ -514,9 +508,7 @@ class GrpoLearner:
         self._train_steps = self.rl_cluster.actor_trainer.train_steps
 
         if self.should_sync_weights:
-          with jax.profiler.StepTraceAnnotation(
-              "sync_sampler_weights", step_num=initial_train_steps
-          ):
+          with jax.profiler.TraceAnnotation("sync_sampler_weights"):
             self.rl_cluster.sync_weights()
         if (
             self._train_steps

@@ -151,13 +151,13 @@ def show_hbm_usage(title=""):
     for i, (used, _) in enumerate(hbm_stats):
       logging.info("Using %s on %s", fmt_size(used), devices[i])
   else:
-    logging.info(
+    print(
         "%s - Pathways not available. Using defaultHBM stats collector", title
     )
     hbm_stats = jax_hbm_usage_gb(devices)
 
     for i, (used, limit) in enumerate(hbm_stats):
-      logging.info(
+      print(
           "Using %s / %s (%s) on %s",
           fmt_size(used),
           fmt_size(limit),

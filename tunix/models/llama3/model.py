@@ -787,3 +787,7 @@ class Llama3(nnx.Module):
     return {
         'embedding': (1, 0),
     }
+
+  @staticmethod
+  def to_hf_hook_fns():
+    pass

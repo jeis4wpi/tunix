@@ -78,9 +78,9 @@ parser.add_argument(
 parser.add_argument(
     "--model-version",
     type=str,
-    # default="meta-llama/Llama-3.1-8B-Instruct"
+    default="meta-llama/Llama-3.1-8B",
     # default="meta-llama/Llama-3.2-3B-Instruct",
-    default="meta-llama/Llama-3.2-1B-Instruct",
+    # default="meta-llama/Llama-3.2-1B-Instruct",
     required=False,
     help="The model version to use.",
 )
@@ -162,9 +162,10 @@ EPSILON = 0.2
 # ====== Training ======
 # 2 is the max we can do on v5e-8 with llama3 8B model.
 # 4 is the max we can do on v5e-8 with llama3 1B model.
-BATCH_SIZE = 4
+BATCH_SIZE = 2
 # To speed up for quick workflow validation, we can change NUM_BATCHES to e.g. 2
-NUM_BATCHES = 1869
+# NUM_BATCHES = 1869
+NUM_BATCHES = 8
 # Keep `NUM_TEST_BATCHES` low so that evaluation runs quickly. It can be
 # increased to a max. of 330 (if batch size is 4).
 # To speed up for quick workflow validation, we can change it to e.g. 1
@@ -200,7 +201,7 @@ SAVE_INTERVAL_STEPS = (
     500  # To speed up for quick workflow validation, we can change it to e.g. 2
 )
 MAX_TO_KEEP = 1
-DO_MEM_PROFILING = False
+DO_MEM_PROFILING = True
 DO_MODEL_DISPLAY = False
 
 # ====== Inference ======
@@ -214,9 +215,10 @@ GENERATION_CONFIGS = {
 }
 
 # ====== Profiler ======
-PROFILER_PATH = os.path.join(
-    args.root_dir, "rl/grpo/demo/experiments/llama3/profiler"
-)
+# PROFILER_PATH = os.path.join(
+#     args.root_dir, "rl/grpo/demo/experiments/llama3/profiler"
+# )
+PROFILER_PATH = "gs://linchai-bucket/tunix_native_xprof/jax_traces_tunix_vllm/grpo"
 
 
 def delete_directory(path: str):
@@ -380,7 +382,7 @@ for ele in train_dataset[:1]:
 MODEL_CONFIG = {
     "meta-llama/Llama-3.2-1B-Instruct": llama_lib.ModelConfig.llama3_2_1b,
     "meta-llama/Llama-3.2-3B-Instruct": llama_lib.ModelConfig.llama3_2_3b,
-    "meta-llama/Llama-3.1-8B-Instruct": llama_lib.ModelConfig.llama3_1_8b,
+    "meta-llama/Llama-3.1-8B": llama_lib.ModelConfig.llama3_1_8b,
     "Qwen/Qwen2.5-0.5B-Instruct": qwen2_lib.ModelConfig.qwen2_5_0_5_b,
     "Qwen/Qwen2.5-7B-Instruct": qwen2_lib.ModelConfig.qwen2_5_7_b,
 }

@@ -123,7 +123,8 @@ def register_jax_monitoring(metrics_logger_options: MetricsLoggerOptions):
 
 def _calculate_geometric_mean(x: jax.Array) -> jax.Array:
   """Calculates geometric mean of a batch of values."""
-  return jnp.exp(jnp.mean(jnp.log(x)))
+  with jax.disable_jit():
+    return jnp.exp(jnp.mean(jnp.log(x)))
 
 
 class MetricsLogger:
