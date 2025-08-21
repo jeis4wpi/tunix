@@ -114,10 +114,10 @@ def register_jax_monitoring(metrics_logger_options: MetricsLoggerOptions):
   # Register Weights & Biases backend.
   if wandb is not None:
     wandb_run_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    wandb.init(project="tunix", name=wandb_run_name, anonymous="allow")
-    if wandb.run:
-      logging.info("W&B run URL: %s", wandb.run.url)
-    jax.monitoring.register_scalar_listener(log_to_wandb)
+    # wandb.init(project="tunix", name=wandb_run_name, anonymous="allow")
+    # if wandb.run:
+    #   logging.info("W&B run URL: %s", wandb.run.url)
+    # jax.monitoring.register_scalar_listener(log_to_wandb)
   return [tensorboard_summary_writer]
 
 
@@ -186,5 +186,5 @@ class MetricsLogger:
       # TODO(b/413717077): Solution for destructing lister in jax.monitoring.
       for summary_writer in self._summary_writers:
         summary_writer.close()
-    if wandb is not None:
-      wandb.finish()
+    # if wandb is not None:
+    #   wandb.finish()

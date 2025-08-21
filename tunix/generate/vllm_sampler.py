@@ -178,6 +178,12 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
         if input_ids[-1] != self.tokenizer.eos_id()
         else []
     )
+    # return bos_tok + input_ids + eos_tok
+    eos_tok = (
+        [self.tokenizer.eos_id()]
+        if input_ids[-1] != self.tokenizer.eos_id()
+        else []
+    )
     return bos_tok + input_ids + eos_tok
 
   def detokenize(
