@@ -89,7 +89,7 @@ RANK = 64
 ALPHA = 64.0
 
 # ====== Sharding ======
-MESH = [(1, 4), ("fsdp", "tp")]
+MESH = [(1, 8), ("fsdp", "tp")]
 
 # ====== GRPO ======
 # === Generation during GRPO training ===
@@ -120,7 +120,7 @@ EPSILON = 0.2
 BATCH_SIZE = 1
 # Increase `NUM_BATCHES` and `MAX_STEPS` for better results.
 # NUM_BATCHES = 3738
-NUM_BATCHES = 4
+NUM_BATCHES = 500
 # Keep `NUM_TEST_BATCHES` low so that evaluation runs quickly. It can be
 # increased to a max. of 330 (if batch size is 4).
 NUM_TEST_BATCHES = 5 #100 #Anisha: making it small for quick eval
@@ -561,7 +561,7 @@ config_ref = pyconfig.initialize(
     # load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
     per_device_batch_size=1,
     max_prefill_predict_length=4,
-    max_target_length=16,
+    max_target_length=1024,
     steps=10,
     async_checkpointing="false",
     model_name="llama3.1-8b",
@@ -629,7 +629,7 @@ config_policy = pyconfig.initialize(
       # tokenizer_path="assets/tokenizer.gemma",
       per_device_batch_size=1,
       max_prefill_predict_length=4,
-      max_target_length=16,
+      max_target_length=1024,
       steps=10,
       async_checkpointing="false",
       model_name="llama3.1-8b",
