@@ -557,7 +557,8 @@ config_ref = pyconfig.initialize(
     run_name="test-tunix-maxtext-llama3.1-8b",
     tokenizer_type="tiktoken",
     tokenizer_path="assets/tokenizer_llama3.tiktoken",
-    load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
+    load_parameters_path="gs://yixuannwang-maxtext-logs/llama3.1-8b-Instruct/scanned/0/items",
+    # load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
     per_device_batch_size=1,
     max_prefill_predict_length=4,
     max_target_length=16,
@@ -623,7 +624,8 @@ config_policy = pyconfig.initialize(
       #TODO: @mazumdera: change this to use checkpoint
       tokenizer_type="tiktoken",
       tokenizer_path="assets/tokenizer_llama3.tiktoken",
-      load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
+      load_parameters_path="gs://yixuannwang-maxtext-logs/llama3.1-8b-Instruct/scanned/0/items",
+    #   load_parameters_path="gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items",
       # tokenizer_path="assets/tokenizer.gemma",
       per_device_batch_size=1,
       max_prefill_predict_length=4,
@@ -996,15 +998,15 @@ sampler = sampler_lib.Sampler(
 )
 
 
-# (corr, total, accuracy, partial_accuracy, format_accuracy) = evaluate(
-#     test_dataset,
-#     sampler,
-#     **GENERATION_CONFIGS["greedy"],
-# )
-# print(
-#     f"{corr=}, {total=}, {accuracy=}%, {partial_accuracy=}%,"
-#     f" {format_accuracy=}%"
-# )
+(corr, total, accuracy, partial_accuracy, format_accuracy) = evaluate(
+    test_dataset,
+    sampler,
+    **GENERATION_CONFIGS["greedy"],
+)
+print(
+    f"{corr=}, {total=}, {accuracy=}%, {partial_accuracy=}%,"
+    f" {format_accuracy=}%"
+)
 
 # # TODO: @mazumdera: why is this 0?
 # # corr=0, total=5, accuracy=0.0%, partial_accuracy=0.0%, format_accuracy=0.0%
@@ -1201,7 +1203,7 @@ output = rl_cluster.rollout.generate(
 )
 
 
-output
+print(f"Output: {output}")
 
 
 # 
