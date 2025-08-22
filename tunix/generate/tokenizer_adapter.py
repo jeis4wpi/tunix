@@ -58,10 +58,10 @@ class TokenizerAdapter:
       return self._tokenizer.encode(text, **kwargs)
 
   def decode(self, ids: list[int], **kwargs) -> str:
-    #TODO: @mazumdera: Handle case where ids is empty or larger than the tokenizer's vocabulary size.
-    for i in range(len(ids)):
-      if ids[i] > len(self._tokenizer):
-        ids[i] = self._tokenizer.pad_id()  # Replace with pad_id if out of range.
+    # #TODO: @mazumdera: Handle case where ids is empty or larger than the tokenizer's vocabulary size.
+    # for i in range(len(ids)):
+    #   if ids[i] > len(self._tokenizer):
+    #     ids[i] = self._tokenizer.pad_id()  # Replace with pad_id if out of range.
     if self._tokenizer_type == TokenizerType.SP:
       return self._tokenizer.DecodeIds(ids, **kwargs)
     elif self._tokenizer_type == TokenizerType.HF:
@@ -100,14 +100,14 @@ class TokenizerAdapter:
     else:
       return self._tokenizer.pad_id()
 
-  def __len__(self) -> int:
-    """Returns the vocabulary size."""
-    if self._tokenizer_type == TokenizerType.SP:
-      return self._tokenizer.GetPieceSize()
-    elif self._tokenizer_type == TokenizerType.HF:
-      return len(self._tokenizer)
-    else:
-      return len(self._tokenizer)
+  # def __len__(self) -> int:
+  #   """Returns the vocabulary size."""
+  #   if self._tokenizer_type == TokenizerType.SP:
+  #     return self._tokenizer.GetPieceSize()
+  #   elif self._tokenizer_type == TokenizerType.HF:
+  #     return len(self._tokenizer)
+  #   else:
+  #     return len(self._tokenizer)
 
   def _missing_methods(self) -> list[str]:
     """Checks if the tokenizer has any missing methods."""

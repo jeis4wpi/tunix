@@ -526,40 +526,40 @@ class PeftTrainer:
 
           train_example = self._prepare_inputs(train_example)
           train_example = self._shard_input(train_example)
-          global_batch_size = _calculate_global_batch_size(train_example)
+          # global_batch_size = _calculate_global_batch_size(train_example)
 
           self._throttler.wait_for_next()
           if self.training_hooks:
             self.training_hooks.on_train_step_start(self)
-          step_start_time = time.perf_counter()
+          # step_start_time = time.perf_counter()
           train_loss, aux = train_step(
               self.model, self.optimizer, train_example
           )
-          step_end_time = time.perf_counter()
-          step_time_delta = step_end_time - step_start_time
+          # step_end_time = time.perf_counter()
+          # step_time_delta = step_end_time - step_start_time
 
-          tflops = system_metrics_calculator.tflops(
-              total_model_params=self._total_model_params,
-              global_batch_size=global_batch_size,
-              step_time_delta=step_time_delta,
-          )
+          # tflops = system_metrics_calculator.tflops(
+          #     total_model_params=self._total_model_params,
+          #     global_batch_size=global_batch_size,
+          #     step_time_delta=step_time_delta,
+          # )
 
           self._throttler.add_computation(train_loss)
           self._train_steps += 1
           self._post_process_train_step(aux)
-          self._log_metrics(
-              train_loss,
-              self._train_steps,
-              tflops,
-          )
-          self._may_update_pbar(self._tqdm_train_metrics, increment_steps=True)
+          # self._log_metrics(
+          #     train_loss,
+          #     self._train_steps,
+          #     tflops,
+          # )
+          # self._may_update_pbar(self._tqdm_train_metrics, increment_steps=True)
 
-          logging.info(
-              "Train step %d training loss: %f  - training perplexity: %f",
-              self._train_steps,
-              self.metrics_logger.get_metric("loss", "train"),
-              self.metrics_logger.get_metric("perplexity", "train"),
-          )
+          # logging.info(
+          #     "Train step %d training loss: %f  - training perplexity: %f",
+          #     self._train_steps,
+          #     self.metrics_logger.get_metric("loss", "train"),
+          #     self.metrics_logger.get_metric("perplexity", "train"),
+          # )
 
           # Actual checkpoint frequency is configured by checkpointing_options.
           self.checkpoint_manager.save(
@@ -629,15 +629,15 @@ class PeftTrainer:
         self._post_process_eval_step(aux)
         eval_loss += loss
         local_eval_steps += 1
-      self._log_metrics(eval_loss / local_eval_steps, self._train_steps)
-      self._may_update_pbar(self._tqdm_eval_metrics)
+      # self._log_metrics(eval_loss / local_eval_steps, self._train_steps)
+      # self._may_update_pbar(self._tqdm_eval_metrics)
 
-      logging.info(
-          "Train step %d eval loss: %f - eval perplexity: %f",
-          self._train_steps,
-          self.metrics_logger.get_metric("loss", "eval"),
-          self.metrics_logger.get_metric("perplexity", "eval"),
-      )
+      # logging.info(
+      #     "Train step %d eval loss: %f - eval perplexity: %f",
+      #     self._train_steps,
+      #     self.metrics_logger.get_metric("loss", "eval"),
+      #     self.metrics_logger.get_metric("perplexity", "eval"),
+      # )
       if self.training_hooks:
         self.training_hooks.on_eval_step_end(self, eval_loss)
 

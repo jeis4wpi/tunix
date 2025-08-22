@@ -151,7 +151,7 @@ class GrpoLearner:
     ])
     self.rl_cluster.actor_trainer.is_managed_externally = True
 
-    self._metrics_logger = self.rl_cluster.actor_trainer.metrics_logger
+    # self._metrics_logger = self.rl_cluster.actor_trainer.metrics_logger
 
     self.grad_acc_steps = (
         self.rl_cluster.cluster_config.training_config.get_with_default(
@@ -254,26 +254,26 @@ class GrpoLearner:
     )
 
     # Log completion lengths.
-    agg_completion_mask = completion_mask.sum(axis=-1)
-    steps = self._get_metric_logging_steps(mode)
-    self._metrics_logger.log(
-        "completions/mean_length",
-        agg_completion_mask.mean(),
-        mode,
-        steps,
-    )
-    self._metrics_logger.log(
-        "completions/max_length",
-        agg_completion_mask.max(),
-        mode,
-        steps,
-    )
-    self._metrics_logger.log(
-        "completions/min_length",
-        agg_completion_mask.min(),
-        mode,
-        steps,
-    )
+    # agg_completion_mask = completion_mask.sum(axis=-1)
+    # steps = self._get_metric_logging_steps(mode)
+    # self._metrics_logger.log(
+    #     "completions/mean_length",
+    #     agg_completion_mask.mean(),
+    #     mode,
+    #     steps,
+    # )
+    # self._metrics_logger.log(
+    #     "completions/max_length",
+    #     agg_completion_mask.max(),
+    #     mode,
+    #     steps,
+    # )
+    # self._metrics_logger.log(
+    #     "completions/min_length",
+    #     agg_completion_mask.min(),
+    #     mode,
+    #     steps,
+    # )
 
     return TrainExample(
         prompt_ids=prompt_ids,
@@ -312,21 +312,21 @@ class GrpoLearner:
       r = jnp.array(r)
       rewards = rewards.at[:, i].set(r)
 
-      self._metrics_logger.log(
-          f"rewards/{reward_fn.__name__}",
-          r.mean(),
-          mode,
-          steps,
-      )
+      # self._metrics_logger.log(
+      #     f"rewards/{reward_fn.__name__}",
+      #     r.mean(),
+      #     mode,
+      #     steps,
+      # )
 
     rewards = jnp.nansum(rewards, axis=1)
 
-    self._metrics_logger.log(
-        "rewards/overall",
-        rewards.mean(),
-        mode,
-        steps,
-    )
+    # self._metrics_logger.log(
+    #     "rewards/overall",
+    #     rewards.mean(),
+    #     mode,
+    #     steps,
+    # )
 
     return rewards
 

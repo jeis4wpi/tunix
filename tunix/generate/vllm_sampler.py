@@ -193,15 +193,15 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
         input_strings, request_outputs
     ):
       for idx, single_output in enumerate(multi_sampling_output.outputs):
+        print(f"Processing output {idx} for input: {input_string} and single_output: {single_output}")
         # vLLM still returns 1 eos id even if we ask it to stop at eos.
         if single_output.token_ids[-1] == self.tokenizer.eos_id():
           single_output.token_ids = single_output.token_ids[:-1]
           single_output.logprobs = single_output.logprobs[:-1]
 
         out_tokens[idx].append(single_output.token_ids)
-        decoded_outputs[idx].append(
-            self.tokenizer.decode(single_output.token_ids)
-        )
+        # @@@@@@@@@@@@@@@@@@@ skip decoding to experiment if it works better in efficiency.
+        decoded_outputs[idx].append(single_output.text)
         logprobs = utils.get_logprobs_from_vllm_output(
             single_output.token_ids, single_output.logprobs
         )
@@ -241,7 +241,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       )
     else:
       self.sampling_params = self.llm.get_default_sampling_params()
-      self.sampling_params.detokenize = False
+      self.sampling_params.detokenize = True
       self.sampling_params.max_tokens = total_generation_steps
       self.sampling_params.n = multi_sampling
       self.sampling_params.temperature = temperature
