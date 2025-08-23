@@ -68,6 +68,7 @@ nest_asyncio.apply()  # To fix "This event loop is already running" error in Col
 
 jax.devices()
 
+DEBUG = False  # set to True to run in debug mode, for more print statements
 
 # ## Hyperparameters
 # 
@@ -210,7 +211,8 @@ TEMPLATE = """<start_of_turn>user
 
 
 def extract_hash_answer(text: str) -> str | None:
-  # print(f"Extracting answer from: {text}")
+  if DEBUG:
+    print(f"Extracting answer from: {text}")
   if "####" not in text:
     return None
   return text.split("####")[1].strip()
@@ -281,9 +283,9 @@ len(train_dataset), len(val_dataset) if val_dataset is not None else 0, len(
 # Let's see how one batch of the dataset looks like!
 # 
 
-
-for ele in train_dataset[:1]:
-  pprint(ele)
+if DEBUG:
+  for ele in train_dataset[:1]:
+    pprint(ele)
 
 
 # ## Load the policy model and the reference model
@@ -380,7 +382,8 @@ def get_ref_maxtext_model(config):
 
   abstract_model = nnx.eval_shape(create_model, config=config)
   graphdef, abstract_state = nnx.split(abstract_model)
-  print("The abstract NNX state (all leaves are abstract arrays):")
+  if DEBUG:
+    print("The abstract NNX state (all leaves are abstract arrays):")
   nnx.display(abstract_state)
   specs = nnx.get_partition_spec(abstract_state)
   mesh = abstract_model.mesh
@@ -584,16 +587,17 @@ nnx.display(llama3_1_8b)
 
 
 # Use:
-print("Model initialized successfully")
-print(f"Model mesh shape: {mesh.shape}")
-print(f"Model config: {model_config}")
+if DEBUG:
+  print("Model initialized successfully")
+  print(f"Model mesh shape: {mesh.shape}")
+  print(f"Model config: {model_config}")
 
 
-_maxtext_state_flatten = nnx.state(llama3_1_8b).flat_state()
-maxtext_state_flatten = {
-    '.'.join(str(key) for key in keys): v for keys, v in _maxtext_state_flatten
-}
-print(f"maxtext_state_flatten[base.token_embedder.embedding].value={maxtext_state_flatten['base.token_embedder.embedding'].value}")
+  _maxtext_state_flatten = nnx.state(llama3_1_8b).flat_state()
+  maxtext_state_flatten = {
+      '.'.join(str(key) for key in keys): v for keys, v in _maxtext_state_flatten
+  }
+  print(f"maxtext_state_flatten[base.token_embedder.embedding].value={maxtext_state_flatten['base.token_embedder.embedding'].value}")
 
 
 
@@ -658,24 +662,25 @@ llama3_1_8b_policy.to_hf_hook_fns = lambda *args: hook_fns
 nnx.display(llama3_1_8b_policy)
 
 # Use:
-print("Model initialized successfully")
-print(f"Model mesh shape: {mesh_policy.shape}")
-print(f"Model config: {model_config_policy}")
+if DEBUG:
+  print("Model initialized successfully")
+  print(f"Model mesh shape: {mesh_policy.shape}")
+  print(f"Model config: {model_config_policy}")
 
 
 
+
+
+
+  _maxtext_state_flatten = nnx.state(llama3_1_8b_policy).flat_state()
+  maxtext_state_flatten = {
+      '.'.join(str(key) for key in keys): v for keys, v in _maxtext_state_flatten
+  }
+  print(f"maxtext_state_flatten[base.token_embedder.embedding].value={maxtext_state_flatten['base.token_embedder.embedding'].value}")
 
 
 print("HBM usage after loading policy model:")
 show_hbm_usage()
-
-
-_maxtext_state_flatten = nnx.state(llama3_1_8b_policy).flat_state()
-maxtext_state_flatten = {
-    '.'.join(str(key) for key in keys): v for keys, v in _maxtext_state_flatten
-}
-print(f"maxtext_state_flatten[base.token_embedder.embedding].value={maxtext_state_flatten['base.token_embedder.embedding'].value}")
-
 
 
 # ## Define reward functions
@@ -806,12 +811,13 @@ def check_numbers(prompts, completions, answer, **kargs):
   ]
 
   scores = []
-  print("START ============================")
-  print(f"Question: {question[0]}")
-  print(f"Answer: {answer[0]}")
-  print(f"Response: {responses[0]}")
-  print(f"Extracted: {extracted_responses[0]}")
-  print("END ==============================")
+  if DEBUG:
+    print("START ============================")
+    print(f"Question: {question[0]}")
+    print(f"Answer: {answer[0]}")
+    print(f"Response: {responses[0]}")
+    print(f"Extracted: {extracted_responses[0]}")
+    print("END ==============================")
   for guess, true_answer in zip(extracted_responses, answer):
     if guess is None:
       scores.append(0)
@@ -925,7 +931,8 @@ def evaluate(
           
       )
       responses = responses.text
-      print(f"Pass {p+1}/{num_passes}, responses: {responses}")
+      if DEBUG:
+        print(f"Pass {p+1}/{num_passes}, responses: {responses}")
       # if isinstance(question, str):
       #   return output[0]
       
@@ -935,11 +942,12 @@ def evaluate(
     for question, multiple_call_response, answer in zip(
         questions, multiple_call_responses, answers
     ):
-      print("========================================")
-      print(f"Evaluation Question: {question}")
-      print(f"Evaluation Answer: {answer}")
-      print(f"Evaluation Responses: {multiple_call_response}")
-      print("========================================")
+      if DEBUG:
+        print("========================================")
+        print(f"Evaluation Question: {question}")
+        print(f"Evaluation Answer: {answer}")
+        print(f"Evaluation Responses: {multiple_call_response}")
+        print("========================================")
       # check answer
       corr_ctr_per_question = 0
       partially_corr_per_question = 0
@@ -950,7 +958,8 @@ def evaluate(
             if (guess := match_numbers.search(response)) is not None
             else "-1000000"
         )
-        print(f"Evaluation extracted_response: {extracted_response}")
+        if DEBUG:
+          print(f"Evaluation extracted_response: {extracted_response}")
         try:
           if float(extracted_response.strip()) == float(answer.strip()):
             corr_ctr_per_question += 1
@@ -1179,19 +1188,19 @@ grpo_trainer = GrpoLearner(
     grpo_config=grpo_config,
 )
 
-
-
-# verify if vllm sampler works
 from tunix.rl.rollout.base_rollout import RolloutConfig
-output = rl_cluster.rollout.generate(
-    ["The capital of France is"],
-    rollout_config=RolloutConfig(
-        n=1, max_tokens_to_generate=64, temperature=0.1
-    ),
-)
+
+if DEBUG:
+# verify if vllm sampler works
+  output = rl_cluster.rollout.generate(
+      ["The capital of France is"],
+      rollout_config=RolloutConfig(
+          n=1, max_tokens_to_generate=64, temperature=0.1
+      ),
+  )
 
 
-print(f"Output: {output}")
+  print(f"Output: {output}")
 
 
 # 
