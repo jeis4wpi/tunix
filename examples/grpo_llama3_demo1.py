@@ -210,7 +210,7 @@ TEMPLATE = """<start_of_turn>user
 
 
 def extract_hash_answer(text: str) -> str | None:
-  print(f"Extracting answer from: {text}")
+  # print(f"Extracting answer from: {text}")
   if "####" not in text:
     return None
   return text.split("####")[1].strip()
@@ -1134,7 +1134,7 @@ cluster_config = rl_cluster_lib.ClusterConfig(
         top_p=TOP_P,
         top_k=TOP_K,
     ),
-    rollout_vllm_model_version="meta-llama/Meta-Llama-3.1-8B",
+    rollout_vllm_model_version="meta-llama/Meta-Llama-3.1-8B-Instruct",
     rollout_vllm_hbm_utilization=0.2,
     rollout_vllm_tpu_backend_type="jax",
     # rollout_vllm_init_with_random_weights=True,
