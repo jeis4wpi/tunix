@@ -891,7 +891,7 @@ def generate(
 
 def evaluate(
     dataset,
-    sampler,
+    rl_cluster,
     temperature=0.7,
     top_k=50,
     top_p=0.95,
@@ -910,18 +910,36 @@ def evaluate(
   for batch in tqdm(dataset):
     answers = batch["answer"]
     questions = batch["question"]
+    prompts = batch["prompts"]
 
     multiple_call_responses = [[] for _ in range(len(questions))]
     for p in range(num_passes):
-      responses = generate(
-          questions, sampler, temperature, top_k, top_p, seed=p
+      responses = rl_cluster.rollout.generate(
+          prompts, 
+          rollout_config=RolloutConfig(
+        n=1, max_tokens_to_generate=TOTAL_GENERATION_STEPS, 
+        temperature=temperature, 
+        top_k=top_k, 
+        top_p = top_p, 
+        ),
+          
       )
+      responses = responses.text
+      print(f"Pass {p+1}/{num_passes}, responses: {responses}")
+      # if isinstance(question, str):
+      #   return output[0]
+      
       for idx, response in enumerate(responses):
         multiple_call_responses[idx].append(response)
 
     for question, multiple_call_response, answer in zip(
         questions, multiple_call_responses, answers
     ):
+      print("========================================")
+      print(f"Evaluation Question: {question}")
+      print(f"Evaluation Answer: {answer}")
+      print(f"Evaluation Responses: {multiple_call_response}")
+      print("========================================")
       # check answer
       corr_ctr_per_question = 0
       partially_corr_per_question = 0
@@ -932,6 +950,7 @@ def evaluate(
             if (guess := match_numbers.search(response)) is not None
             else "-1000000"
         )
+        print(f"Evaluation extracted_response: {extracted_response}")
         try:
           if float(extracted_response.strip()) == float(answer.strip()):
             corr_ctr_per_question += 1
@@ -939,7 +958,8 @@ def evaluate(
           ratio = float(extracted_response.strip()) / float(answer.strip())
           if ratio >= 0.9 and ratio <= 1.1:
             partially_corr_per_question += 1
-        except:
+        except Exception as e:
+          print(f"Evaluation Exception: {e} ")
           print("SKIPPED")
 
         # check format
@@ -996,38 +1016,6 @@ sampler = sampler_lib.Sampler(
         head_dim=model_config.head_dim,
     ),
 )
-
-
-(corr, total, accuracy, partial_accuracy, format_accuracy) = evaluate(
-    test_dataset,
-    sampler,
-    **GENERATION_CONFIGS["greedy"],
-)
-print(
-    f"{corr=}, {total=}, {accuracy=}%, {partial_accuracy=}%,"
-    f" {format_accuracy=}%"
-)
-
-# # TODO: @mazumdera: why is this 0?
-# # corr=0, total=5, accuracy=0.0%, partial_accuracy=0.0%, format_accuracy=0.0%
-
-
-
-# for eval_example in QUALITATIVE_EVAL_EXAMPLES:
-#   question = eval_example["question"]
-#   answer = eval_example["answer"]
-#   response = generate(
-#       question,
-#       sampler,
-#       temperature=INFERENCE_TEMPERATURE,
-#       top_k=INFERENCE_TOP_K,
-#       top_p=INFERENCE_TOP_P,
-#   )
-
-#   print(f"Question:\n{question}")
-#   print(f"Answer:\n{answer}")
-#   print(f"Response:\n{response}")
-#   print("===============")
 
 
 # ## Train
@@ -1209,6 +1197,41 @@ print(f"Output: {output}")
 # 
 
 
+(corr, total, accuracy, partial_accuracy, format_accuracy) = evaluate(
+    test_dataset,
+    rl_cluster,
+    **GENERATION_CONFIGS["greedy"],
+)
+print(
+    f"Pre GRPO Training: {corr=}, {total=}, {accuracy=}%, {partial_accuracy=}%,"
+    f" {format_accuracy=}%"
+)
+
+# # TODO: @mazumdera: why is this 0?
+# # corr=0, total=5, accuracy=0.0%, partial_accuracy=0.0%, format_accuracy=0.0%
+
+
+
+# for eval_example in QUALITATIVE_EVAL_EXAMPLES:
+#   question = eval_example["question"]
+#   answer = eval_example["answer"]
+#   response = generate(
+#       question,
+#       sampler,
+#       temperature=INFERENCE_TEMPERATURE,
+#       top_k=INFERENCE_TOP_K,
+#       top_p=INFERENCE_TOP_P,
+#   )
+
+#   print(f"Question:\n{question}")
+#   print(f"Answer:\n{answer}")
+#   print(f"Response:\n{response}")
+#   print("===============")
+
+
+
+
+
 import jax
 jax.profiler.start_trace("/home/mazumdera_google_com/tmp/jax_traces/grpo")
 with mesh:
@@ -1223,47 +1246,47 @@ jax.profiler.stop_trace()
 
 # Load checkpoint first.
 
-trained_ckpt_path = os.path.join(CKPT_DIR, str(MAX_STEPS), "model_params")
+# trained_ckpt_path = os.path.join(CKPT_DIR, str(MAX_STEPS), "model_params")
 
-abs_params = jax.tree.map(
-    lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
-    nnx.state(llama3_1_8b_policy, nnx.Param),
-)
-checkpointer = ocp.StandardCheckpointer()
-trained_lora_params = checkpointer.restore(trained_ckpt_path, target=abs_params)
+# abs_params = jax.tree.map(
+#     lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
+#     nnx.state(llama3_1_8b_policy, nnx.Param),
+# )
+# checkpointer = ocp.StandardCheckpointer()
+# trained_lora_params = checkpointer.restore(trained_ckpt_path, target=abs_params)
 
-nnx.update(
-    llama3_1_8b_policy,
-    jax.tree.map(
-        lambda a, b: b,
-        nnx.state(llama3_1_8b_policy, nnx.Param),
-        trained_lora_params,
-    ),
-)
+# nnx.update(
+#     llama3_1_8b_policy,
+#     jax.tree.map(
+#         lambda a, b: b,
+#         nnx.state(llama3_1_8b_policy, nnx.Param),
+#         trained_lora_params,
+#     ),
+# )
 
 
-gemma_tokenizer = data_lib.GemmaTokenizer()
-sampler = sampler_lib.Sampler(
-    transformer=llama3_1_8b_policy,
-    tokenizer=gemma_tokenizer,
-    cache_config=sampler_lib.CacheConfig(
-        cache_size=MAX_PROMPT_LENGTH + TOTAL_GENERATION_STEPS + 256,
-        num_layers=model_config.num_layers,
-        num_kv_heads=model_config.num_kv_heads,
-        head_dim=model_config.head_dim,
-    ),
-)
-
+# gemma_tokenizer = data_lib.GemmaTokenizer()
+# sampler = sampler_lib.Sampler(
+#     transformer=llama3_1_8b_policy,
+#     tokenizer=gemma_tokenizer,
+#     cache_config=sampler_lib.CacheConfig(
+#         cache_size=MAX_PROMPT_LENGTH + TOTAL_GENERATION_STEPS + 256,
+#         num_layers=model_config.num_layers,
+#         num_kv_heads=model_config.num_kv_heads,
+#         head_dim=model_config.head_dim,
+#     ),
+# )
 
 (corr, total, accuracy, partial_accuracy, format_accuracy) = evaluate(
     test_dataset,
-    sampler,
+    rl_cluster,
     **GENERATION_CONFIGS["greedy"],
 )
 print(
-    f"{corr=}, {total=}, {accuracy=}%, {partial_accuracy=}%,"
+    f"Post GRPO Training: {corr=}, {total=}, {accuracy=}%, {partial_accuracy=}%,"
     f" {format_accuracy=}%"
 )
+
 
 
 # for eval_example in QUALITATIVE_EVAL_EXAMPLES:
