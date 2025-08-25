@@ -109,7 +109,7 @@ def pad_to_length(
   """
   length = x.shape[axis]
   if length >= target_length:
-    return x
+    return x[:target_length] if axis == 0 else x[..., :target_length]
 
   padding_shape = list(x.shape)
   padding_shape[axis] = target_length - length

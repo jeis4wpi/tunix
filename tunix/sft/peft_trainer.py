@@ -321,6 +321,10 @@ class PeftTrainer:
         self.optimizer, nnx.optimizer.OptState
     )  # select only the optimizer state
     optimizer_pspecs = nnx.get_partition_spec(optimizer_state_arrays)
+    print(
+        "Sharding optimizer state with partition specs: %s",
+        optimizer_pspecs,
+    )
 
     def _adjust_pspec(pspec, state):
       if pspec is None:
@@ -334,6 +338,7 @@ class PeftTrainer:
     adjusted_pspecs = jax.tree.map(
         _adjust_pspec, optimizer_pspecs, optimizer_state_arrays
     )
+    print(f"{adjusted_pspecs}")
     optimizer_shardings = nn.logical_to_mesh_sharding(
         adjusted_pspecs,
         mesh,

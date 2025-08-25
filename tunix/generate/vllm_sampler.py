@@ -111,7 +111,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       filter_types: Optional[Tuple[Any, ...]] = None,
   ):
     del filter_types
-    print("update_params called...")
+    # print("update_params called...")
     utils.transfer_state_with_mappings(
         src_state=updated_weights,
         dst_state=self.transformer_state,
@@ -120,7 +120,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
         transpose_keys=self.to_hf_transpose_keys,
         reshard_fn=reshard.reshard_pytree,
     )
-    print("done on update_params... verify the weights are updated")
+    # print("done on update_params... verify the weights are updated")
     # utils.verify_state_closeness(self.copied_original_state, self.transformer_state)
 
 
@@ -193,7 +193,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
         input_strings, request_outputs
     ):
       for idx, single_output in enumerate(multi_sampling_output.outputs):
-        print(f"Processing output {idx} for input: {input_string} and single_output: {single_output}")
+        # print(f"Processing output {idx} for input: {input_string} and single_output: {single_output}")
         # vLLM still returns 1 eos id even if we ask it to stop at eos.
         if single_output.token_ids[-1] == self.tokenizer.eos_id():
           single_output.token_ids = single_output.token_ids[:-1]
@@ -201,7 +201,10 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
 
         out_tokens[idx].append(single_output.token_ids)
         # @@@@@@@@@@@@@@@@@@@ skip decoding to experiment if it works better in efficiency.
-        decoded_outputs[idx].append(single_output.text)
+        # decoded_outputs[idx].append(single_output.text)
+        decoded_outputs[idx].append(
+            self.tokenizer.decode(single_output.token_ids)
+        )
         logprobs = utils.get_logprobs_from_vllm_output(
             single_output.token_ids, single_output.logprobs
         )
@@ -241,7 +244,7 @@ class VllmSampler(base_sampler.BaseSampler):  # pylint: disable=invalid-name
       )
     else:
       self.sampling_params = self.llm.get_default_sampling_params()
-      self.sampling_params.detokenize = True
+      self.sampling_params.detokenize = False
       self.sampling_params.max_tokens = total_generation_steps
       self.sampling_params.n = multi_sampling
       self.sampling_params.temperature = temperature

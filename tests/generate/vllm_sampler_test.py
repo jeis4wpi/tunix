@@ -42,6 +42,7 @@ class VllmSamplerTest(absltest.TestCase):
 
     self.repo_id = "meta-llama/Llama-3.1-8B-Instruct"
     temp_dir = tempfile.gettempdir()
+    print(f"Using temp dir: {temp_dir}")
     self.model_path = os.path.join(temp_dir, "models", self.repo_id)
     all_files = huggingface_hub.list_repo_files(self.repo_id)
     filtered_files = [f for f in all_files if not f.startswith("original/")]
@@ -158,36 +159,43 @@ class VllmSamplerTest(absltest.TestCase):
 
     inputs = self.templatize(prompts, tokenizer=model_tokenizer)
 
-    vn_sampler = vanilla_sampler.Sampler(
-        transformer=tunix_model,
-        tokenizer=model_tokenizer,
-        cache_config=vanilla_sampler.CacheConfig(
-            cache_size=512, num_layers=32, num_kv_heads=8, head_dim=128
-        ),
-    )
-    vanilla_output = vn_sampler(
-        input_strings=inputs,
-        total_generation_steps=128,  # Changed from 768 to 128 for vLLM
-        max_prompt_length=None,  # Use default max prompt length
-        temperature=0.0,
-        # top_p=0.9,
-        top_k=1,
-        seed=0,
-        echo=False,
-        pad_output=True,  # Use padding for output
-    )
-
-    vl_sampler = vllm_sampler.VllmSampler(
-        tokenizer=model_tokenizer,
-        mesh=self.mesh,
-        max_model_len=512,  # Set to 1024 for vLLM
+    # vn_sampler = vanilla_sampler.Sampler(
+    #     transformer=tunix_model,
+    #     tokenizer=model_tokenizer,
+    #     cache_config=vanilla_sampler.CacheConfig(
+    #         cache_size=512, num_layers=32, num_kv_heads=8, head_dim=128
+    #     ),
+    # )
+    # vanilla_output = vn_sampler(
+    #     input_strings=inputs,
+    #     total_generation_steps=128,  # Changed from 768 to 128 for vLLM
+    #     max_prompt_length=None,  # Use default max prompt length
+    #     temperature=0.0,
+    #     # top_p=0.9,
+    #     top_k=1,
+    #     seed=0,
+    #     echo=False,
+    #     pad_output=True,  # Use padding for output
+    # )
+    vllm_config = vllm_sampler.VllmConfig(
         model_version=self.model_path,
+        max_model_len=512,  # Set to 1024 for vLLM
+        mesh=self.mesh,
+        hbm_utilization=0.2,
+        init_with_random_weights=True,
+        tpu_backend_type="jax",
         mapping_config=vllm_sampler.MappingConfig(
             to_hf_mappings=tunix_model.to_hf_mappings(),
             to_hf_transpose_keys=tunix_model.to_hf_transpose_keys(),
             lora_to_hf_mappings=tunix_model.lora_to_hf_mappings(),
+            to_hf_hook_fns=None,
             lora_config=args["additional_config"]["lora_config"],
         ),
+    )
+
+    vl_sampler = vllm_sampler.VllmSampler(
+        tokenizer=model_tokenizer,
+        config=vllm_config,
     )
     state = nnx.state(tunix_model)
     vl_sampler.load_checkpoint(state)

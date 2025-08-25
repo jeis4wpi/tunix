@@ -202,6 +202,7 @@ class RLCluster:
       The model loaded on the given mesh.
     """
     if isinstance(model_or_path, nnx.Module):
+      utils.show_hbm_usage("before load Model")
       model_mesh = utils.get_pytree_mesh_info(nnx.state(model_or_path))
       original_shardings = jax.tree_util.tree_map(
           lambda x: x.sharding, nnx.state(model_or_path)
@@ -233,6 +234,8 @@ class RLCluster:
         graph, state = nnx.split(model_or_path)
         new_params = utils.put_params_on_memory_kind(state, "pinned_host")
         model_or_path = nnx.merge(graph, new_params)
+      
+      utils.show_hbm_usage("after load Model")
       return model_or_path
     else:
       raise NotImplementedError("Loading from path is not supported yet.")
