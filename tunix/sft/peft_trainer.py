@@ -18,12 +18,8 @@ from collections.abc import Iterable
 import contextlib
 import dataclasses
 import time
-<<<<<<< HEAD
 from typing import Any, Callable, Concatenate, Dict, List, ParamSpec, Tuple
 
-=======
-from typing import Any, Callable, Concatenate, Dict, ParamSpec, Tuple, List
->>>>>>> 1636eed ([Do Not Review]:Run native sft benchmark for llama3)
 from absl import logging
 import flax
 from flax import nnx
@@ -708,7 +704,6 @@ class PeftTrainer:
               self.model,
               save_only_lora_params=self._lora_enabled,
           )
-<<<<<<< HEAD
 
           if (
               self._iter_steps
@@ -724,9 +719,6 @@ class PeftTrainer:
               self._run_eval(eval_ds, eval_step)
 
         self._prof.maybe_deactivate(self._iter_steps)
-=======
-        self._prof.maybe_deactivate(self._train_steps)
->>>>>>> 1636eed ([Do Not Review]:Run native sft benchmark for llama3)
 
     self._throttler.wait_for_all()
     if self.training_hooks:
