@@ -356,7 +356,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '../../maxtext')))
 
 # ! pip install -r ../../maxtext/requirements.txt
 
-import MaxText as mt
+from MaxText import train_utils
 from MaxText import pyconfig
 
 
@@ -378,7 +378,7 @@ from etils import epath
 def get_ref_maxtext_model(config):
 
   def create_model(config):
-    return mt.from_pretrained(config, rngs=nnx.Rngs(params=0, dropout=1))
+    return train_utils.from_config(config, rngs=nnx.Rngs(params=0, dropout=1))
 
   abstract_model = nnx.eval_shape(create_model, config=config)
   graphdef, abstract_state = nnx.split(abstract_model)
@@ -577,7 +577,7 @@ config_ref = pyconfig.initialize(
     query_proj="offload",
     key_proj="offload",
     value_proj="offload",
-    opt_type="sgd",
+    enable_nnx=True,
 )
 
 llama3_1_8b, mesh, model_config = get_ref_maxtext_model(config_ref)
@@ -647,7 +647,7 @@ config_policy = pyconfig.initialize(
       query_proj="offload",
       key_proj="offload",
       value_proj="offload",
-      opt_type="sgd",
+      enable_nnx=True,
   )
 llama3_1_8b_policy, mesh_policy, model_config_policy = get_ref_maxtext_model(config_policy)
 
