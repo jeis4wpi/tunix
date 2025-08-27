@@ -121,10 +121,10 @@ EPSILON = 0.2
 BATCH_SIZE = 1
 # Increase `NUM_BATCHES` and `MAX_STEPS` for better results.
 # NUM_BATCHES = 3738
-NUM_BATCHES = 500
+NUM_BATCHES = 4 #200
 # Keep `NUM_TEST_BATCHES` low so that evaluation runs quickly. It can be
 # increased to a max. of 330 (if batch size is 4).
-NUM_TEST_BATCHES = 5 #100 #Anisha: making it small for quick eval
+NUM_TEST_BATCHES = 5 #200
 
 EVAL_EVERY_N_STEPS = 10  # this doesn't matter if `TRAIN_FRACTION = 1.0`.
 NUM_EPOCHS = 1  # can potentially train for more epochs
@@ -141,7 +141,7 @@ WEIGHT_DECAY = 0.1
 # Linearly increase learning rate from 0. to 5e-6 in the first 10% training
 # steps, and then gradually decrease the learning rate to 0 using cosine
 # scheduler.
-WARMUP_STEPS = 0.1 * MAX_STEPS
+WARMUP_STEPS = int(0.1 * MAX_STEPS)
 # == Grad clipping ==
 # Grad clipping to prevent large gradients. Found this
 # important to keep KL divergence in check.
@@ -1046,7 +1046,7 @@ metrics_logging_options = metrics_logger.MetricsLoggerOptions(
 
 # Logs
 # %load_ext tensorboard
-# %tensorboard --logdir /home/mazumdera_google_com/content/tmp/tensorboard/grpo --port=0
+# %tensorboard --logdir /home/mazumdera_google_com/content/tmp/tensorboard/grpo --port=8086
 # %reload_ext tensorboard
 
 
@@ -1072,20 +1072,7 @@ metrics_logging_options = metrics_logger.MetricsLoggerOptions(
 
 
 # Optimizer, learning rate scheduler, gradient clipping
-# optimizer = optax.adamw(
-#     learning_rate=optax.schedules.warmup_cosine_decay_schedule(
-#         init_value=0.0,
-#         peak_value=LEARNING_RATE,
-#         warmup_steps=WARMUP_STEPS,
-#         decay_steps=MAX_STEPS,
-#         end_value=0.0,
-#     ),
-#     b1=B1,
-#     b2=B2,
-#     weight_decay=WEIGHT_DECAY,
-# )
-#TODO: @mazumdera: try optimizer offloading with adamw
-optimizer = optax.adafactor(
+optimizer = optax.adamw(
     learning_rate=optax.schedules.warmup_cosine_decay_schedule(
         init_value=0.0,
         peak_value=LEARNING_RATE,
@@ -1093,7 +1080,20 @@ optimizer = optax.adafactor(
         decay_steps=MAX_STEPS,
         end_value=0.0,
     ),
+    b1=B1,
+    b2=B2,
+    weight_decay=WEIGHT_DECAY,
 )
+#TODO: @mazumdera: try optimizer offloading with adamw
+# optimizer = optax.adafactor(
+#     learning_rate=optax.schedules.warmup_cosine_decay_schedule(
+#         init_value=0.0,
+#         peak_value=LEARNING_RATE,
+#         warmup_steps=WARMUP_STEPS,
+#         decay_steps=MAX_STEPS,
+#         end_value=0.0,
+#     ),
+# )
 if MAX_GRAD_NORM is not None:
   optimizer = optax.chain(
       optax.clip_by_global_norm(max_norm=MAX_GRAD_NORM),
