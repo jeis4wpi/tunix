@@ -476,8 +476,8 @@ class PeftTrainer:
     try:
       ret = self.optimizer.opt_state.hyperparams["learning_rate"].value
       
-      logging.info("389 type of ret %s",type(ret))
-      logging.info("ret %s",ret)
+      # logging.info("389 type of ret %s",type(ret))
+      # logging.info("ret %s",ret)
       return ret 
     except AttributeError:
       for chainpart in self.optimizer.opt_state:
@@ -485,8 +485,8 @@ class PeftTrainer:
           break
         if hasattr(chainpart, "hyperparams"):
           ret = chainpart.hyperparams["learning_rate"].value
-          logging.info("398 type of ret %s",type(ret))
-          logging.info("ret %s",ret)
+          # logging.info("398 type of ret %s",type(ret))
+          # logging.info("ret %s",ret)
           return ret 
       return None
 

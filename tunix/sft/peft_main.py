@@ -263,6 +263,7 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
   model_name = hyperparms.config['model_name']
   ckpt_source = hyperparms.config['ckpt_source']
 
+  jax.config.update("jax_log_compiles", True)
   # Currently, we only support limited workflow.
   _validate_current_workflow(model_name, ckpt_source)
 
@@ -327,7 +328,7 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
     # logging.info("pad id %d", pad_id)
     def gen_model_input_fn(x: peft_trainer.TrainingInput):
       pad_mask = x.input_tokens != 0
-      logging.info("type of input_token %s", type(x.input_tokens))
+      # logging.info("type of input_token %s", type(x.input_tokens))
       
       positions = gemma_lib.build_positions_from_mask(pad_mask)
       attention_mask = gemma_lib.make_causal_attn_mask(pad_mask)
@@ -345,7 +346,8 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
     num_train_epochs=hyperparms.config['num_train_epochs'],
     tokenizer=hf_tokenizer,
     )
-    logging.info("type(train_ds) %s",type(train_ds))
+    # logging.info("type(train_ds) %s",type(train_ds))
+
 
   if hyperparms.config['visualize_model']:
     nnx.display(model)
@@ -359,11 +361,11 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
 
   # optimizer = optax.inject_hyperparams(optax.adamw, hyperparam_dtype=jnp.float32)(learning_rate=1e-5)
   optimizer = optax.adamw(1e-5)
-
   trainer = peft_trainer.PeftTrainer(
       model, optimizer, hyperparms.training_config
   )
   trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
+  
   with mesh:
     trainer.train(train_ds, None)
 
