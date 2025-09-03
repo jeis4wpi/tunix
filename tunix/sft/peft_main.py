@@ -263,7 +263,6 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
   model_name = hyperparms.config['model_name']
   ckpt_source = hyperparms.config['ckpt_source']
 
-  jax.config.update("jax_log_compiles", True)
   # Currently, we only support limited workflow.
   _validate_current_workflow(model_name, ckpt_source)
 
@@ -278,8 +277,14 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
     params = gemma_params_lib.load_and_format_params(
         os.path.join(ckpt_path, model_version)
     )
+<<<<<<< HEAD
 
     model = gemma_lib.Transformer.from_params(params, version=model_version)
+=======
+    # utils.show_hbm_usage("after load params")
+    model = gemma_lib.Transformer.from_params(params, version=model_version)
+    # utils.show_hbm_usage("after load models")
+>>>>>>> 2f76799 (add latest change)
     if _source_third_party(ckpt_source):
       # Load the model and save to checkpoint locally, then reload the model
       # sharded. This is a workaround, as the checkpoint on 3rd party don't work
@@ -291,7 +296,11 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
     tokenizer = data_lib.GemmaTokenizer(
         os.path.join(ckpt_path, 'tokenizer.model')
     )
+<<<<<<< HEAD
 
+=======
+    # utils.show_hbm_usage("after create token")
+>>>>>>> 2f76799 (add latest change)
     def gen_model_input_fn(x: peft_trainer.TrainingInput):
       pad_mask = x.input_tokens != tokenizer.pad_id()
       positions = gemma_lib.build_positions_from_mask(pad_mask)
@@ -309,7 +318,11 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
       max_target_length=hyperparms.config['max_target_length'],
       num_train_epochs=hyperparms.config['num_train_epochs'],
       tokenizer=tokenizer)
+<<<<<<< HEAD
     
+=======
+    # utils.show_hbm_usage("after create dataset")
+>>>>>>> 2f76799 (add latest change)
   elif model_name.startswith('llama3.1') and ckpt_source == 'huggingface':
     model_cp_path = hyperparms.config['hf_cp_base_model_directory']
     _hf_pipeline(hyperparms)
@@ -362,7 +375,7 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
   # optimizer = optax.inject_hyperparams(optax.adamw, hyperparam_dtype=jnp.float32)(learning_rate=1e-5)
   optimizer = optax.adamw(1e-5)
   trainer = peft_trainer.PeftTrainer(
-      model, optimizer, hyperparms.training_config
+      model, hyperparms.optimizer, hyperparms.training_config
   )
   trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
   

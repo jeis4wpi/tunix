@@ -46,45 +46,6 @@ _ModelInputT = Dict[str, ArrayLike]
 P = ParamSpec("P")
 
 
-def jax_hbm_usage_gb(devices: Any) -> List[Tuple[float, float]]:
-  hbm_used = []
-  for d in devices:
-    stats = d.memory_stats()
-    used = stats["bytes_in_use"]
-    limit = stats["bytes_limit"]
-    hbm_used.append((used, limit))
-  return hbm_used
-
-
-def humanize_binary_size(size: float) -> str:
-  return humanize.naturalsize(size, binary=True, gnu=False, format='%.1f')
-
-def show_hbm_usage(title=""):
-  """Prints the current HBM usage.
-
-  Args:
-    title: The title to print before the HBM usage.
-  """
-  fmt_size = humanize_binary_size
-  devices = jax.devices()
-  # Force a GC sweep to catch recently deallocated arrays
-  gc.collect()
-
-
-  logging.info(
-      "%s - Pathways not available. Using defaultHBM stats collector", title
-  )
-  hbm_stats = jax_hbm_usage_gb(devices)
-
-  for i, (used, limit) in enumerate(hbm_stats):
-    logging.info(
-        "Using %s / %s (%s) on %s",
-        fmt_size(used),
-        fmt_size(limit),
-        used / limit,
-        devices[i],
-    )
-
 @contextlib.contextmanager
 def time_measure(context: str = ""):
   start = time.perf_counter()
@@ -474,26 +435,22 @@ class PeftTrainer:
   def _try_get_learning_rate(self) -> float | None:
     """Returns the learning rate from the optimizer state if available."""
     try:
-      ret = self.optimizer.opt_state.hyperparams["learning_rate"].value
-      
-      # logging.info("389 type of ret %s",type(ret))
-      # logging.info("ret %s",ret)
-      return ret 
+      ret = jax.device_get(
+          self.optimizer.opt_state.hyperparams["learning_rate"].value
+      )
+      return ret
     except AttributeError:
       for chainpart in self.optimizer.opt_state:
         if isinstance(chainpart, optax.EmptyState):
           break
         if hasattr(chainpart, "hyperparams"):
-          ret = chainpart.hyperparams["learning_rate"].value
-          # logging.info("398 type of ret %s",type(ret))
-          # logging.info("ret %s",ret)
-          return ret 
+          ret = jax.device_get(chainpart.hyperparams["learning_rate"].value)
+          return ret
       return None
 
   def _log_metrics(
       self,
       loss: ArrayLike,
-      learning_rate: float | None,
       step: int | None = None,
       step_time_delta: float | None = None,
       additional_metrics: dict[str, ArrayLike] | None = None,
@@ -502,11 +459,8 @@ class PeftTrainer:
     perplexity = np.exp(loss)
     self.metrics_logger.log("loss", loss, self._mode, step)
     self.metrics_logger.log("perplexity", perplexity, self._mode, step)
-    learning_rate = self._try_get_learning_rate()
     if learning_rate is not None:
-      logging.info("learning_rate is not none")
-      lr_item = jax.device_get(learning_rate)
-      self.metrics_logger.log("learning_rate", lr_item, self._mode, step)
+      self.metrics_logger.log("learning_rate", learning_rate, self._mode, step)
     if step_time_delta is not None:
       self.metrics_logger.log(
           "step_time_sec", step_time_delta, self._mode, step
@@ -635,7 +589,6 @@ class PeftTrainer:
     train_iterator = iter(train_ds)
     index = 0
     last_step_completion_time = time.perf_counter()
-    show_hbm_usage("before train loop")
     with time_measure("Train loop"):
       while True:
         self._prof.maybe_activate(self._iter_steps)
@@ -676,23 +629,22 @@ class PeftTrainer:
           if self.training_hooks:
             self.training_hooks.on_train_step_start(self)
 
-          show_hbm_usage("before train step %d" % self._train_steps)
           train_loss, aux, lr = train_step(
               self.model, self.optimizer, train_example
           )
-          show_hbm_usage("after train step %d" % self._train_steps)
 
           current_time = time.perf_counter()
           step_time_delta = current_time - last_step_completion_time
           last_step_completion_time = current_time
+          learning_rate = self._try_get_learning_rate()
 
           self._throttler.add_computation(train_loss)
           self._buffered_train_metrics = self._buffer_metrics(
               self._buffered_train_metrics,
               loss=train_loss,
-              lr = lr, 
               step=self._train_steps,
               step_time_delta=step_time_delta,
+              learning_rate = learning_rate,
           )
           # NB: put this after self._buffer_metrics is important
           self._post_process_train_step(aux)

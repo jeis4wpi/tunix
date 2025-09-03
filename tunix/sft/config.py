@@ -23,6 +23,7 @@ import orbax.checkpoint as ocp
 from tunix.sft import metrics_logger
 from tunix.sft import peft_trainer
 from tunix.sft import profiler
+from typing import Dict
 
 # Define a prefix for environment variables that can override YAML keys
 _TUNIX_PREFIX = "T_"
@@ -64,7 +65,7 @@ _OPTIMIZER_MAP: dict[
 }
 
 
-_yaml_types_to_parser = {str: str, int: int, float: float, bool: string_to_bool, peft_trainer.TrainingConfig: peft_trainer.TrainingConfig}
+_yaml_types_to_parser = {str: str, int: int, float: float, bool: string_to_bool, omegaconf.dictconfig.DictConfig: dict}
 
 
 class HyperParameters:
