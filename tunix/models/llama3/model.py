@@ -520,6 +520,7 @@ class Llama3(nnx.Module):
         ),
     }
 
+  @jax.jit
   def __call__(
       self,
       input_tokens: jaxtyping.Array,  # [B, L]

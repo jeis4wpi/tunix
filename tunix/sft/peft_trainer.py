@@ -22,6 +22,9 @@ from typing import Any, Callable, Concatenate, Dict, ParamSpec, Tuple
 from absl import logging
 import flax
 from flax import nnx
+import functools
+
+from flax.linen import partitioning as nn_partitioning
 from flax import linen as nn
 import jax
 from jax.interpreters import pxla
@@ -158,20 +161,22 @@ class PeftTrainer:
       model: nnx.Module,
       optimizer: optax.GradientTransformation,
       training_config: TrainingConfig,
+      logical_axis_rules: Any | None = None,
   ):
     self.model = model
     self.config = training_config
     self._lora_enabled = is_lora_enabled(self.model)
-    if training_config.gradient_accumulation_steps is not None:
-      optimizer = optax.MultiSteps(
-          optimizer, training_config.gradient_accumulation_steps
-      )
-    if self._lora_enabled:
-      self.optimizer = nnx.ModelAndOptimizer(
-          self.model, optimizer, wrt=nnx.LoRAParam
-      )
-    else:
-      self.optimizer = nnx.ModelAndOptimizer(self.model, optimizer)
+    # if training_config.gradient_accumulation_steps is not None:
+    #   optimizer = optax.MultiSteps(
+    #       optimizer, training_config.gradient_accumulation_steps
+    #   )
+    # if self._lora_enabled:
+    #   self.optimizer = nnx.ModelAndOptimizer(
+    #       self.model, optimizer, wrt=nnx.LoRAParam
+    #   )
+    # else:
+    self.optimizer = nnx.ModelAndOptimizer(self.model, optimizer)
+    optimizer_shape = jax.tree.map(lambda x: x.shape, nnx.state(self.optimizer, nnx.OptState))
     self.loss_fn = _default_loss_fn
     self.eval_loss_fn = _default_loss_fn
     self.gen_model_input_fn = lambda x: x
@@ -212,6 +217,7 @@ class PeftTrainer:
     )
     self.training_hooks = None
     self.data_hooks = None
+    self.logical_axis_rules = logical_axis_rules
 
   def with_training_hooks(self, training_hooks: hooks.TrainingHooks):
     self.training_hooks = training_hooks
@@ -275,6 +281,17 @@ class PeftTrainer:
     """
     inputs = self.gen_model_input_fn(inputs)
 
+    if self._train_steps < 2:
+      # jax.tree.map(lambda x: print(f"{x.sharding=}"), nnx.state(model))
+      x_shapes= jax.tree.map(lambda x: x.shape, nnx.state(model))
+      print(f"model state {x_shapes=}")
+
+      # jax.tree.map(lambda x: print(f"{x.sharding=}"), nnx.state(optimizer, nnx.optimizer.OptState))
+      x_opt_shapes = jax.tree.map(
+        lambda x: x.shape, nnx.state(optimizer, nnx.optimizer.OptState)
+      )
+      print(f"optimizer state {x_opt_shapes=}")
+
     grad_fn = nnx.value_and_grad(
         self.loss_fn,
         argnums=nnx.DiffState(0, nnx.LoRAParam) if self._lora_enabled else 0,
@@ -320,32 +337,48 @@ class PeftTrainer:
     optimizer_state_arrays = nnx.state(
         self.optimizer, nnx.optimizer.OptState
     )  # select only the optimizer state
+    optimizer_shapes = jax.tree.map(lambda x: x.shape, optimizer_state_arrays)
+    print(f"#####optimizer_shapes={optimizer_shapes=}")
     optimizer_pspecs = nnx.get_partition_spec(optimizer_state_arrays)
-    print(
-        "Sharding optimizer state with partition specs: %s",
-        optimizer_pspecs,
-    )
+    # print(
+    #     "Sharding optimizer state with partition specs: %s",
+    #     optimizer_pspecs,
+    # )
 
     def _adjust_pspec(pspec, state):
+      print(f"##### original {pspec=}")
       if pspec is None:
         return None
       # state can be a scalar, which is not an array.
       state_ndim = getattr(state, 'ndim', 0)
       if len(pspec) > state_ndim:
         return shd.PartitionSpec(*pspec[:state_ndim])
+      print(f"#####adjusted_{pspec=}")
       return pspec
 
     adjusted_pspecs = jax.tree.map(
         _adjust_pspec, optimizer_pspecs, optimizer_state_arrays
     )
-    print(f"{adjusted_pspecs}")
+    # print(f"#####{adjusted_pspecs=}")
     optimizer_shardings = nn.logical_to_mesh_sharding(
         adjusted_pspecs,
         mesh,
+        self.logical_axis_rules,
     )
+    # print(f"#####{optimizer_shardings=}")
+    # with mesh, nn_partitioning.axis_rules(self.logical_axis_rules):
+    #   @functools.partial(jax.jit, out_shardings=optimizer_shardings)
+    #   def _apply_sharding(x):
+    #     return x
+    #   optimizer_sharded_state = _apply_sharding(optimizer_state_arrays)
     optimizer_sharded_state = jax.lax.with_sharding_constraint(
         optimizer_state_arrays, optimizer_shardings
     )
+    # optimizer_pspecs = nnx.get_partition_spec(optimizer_state_arrays)
+    # print(
+    #     "Sharding optimizer state with partition specs after adjust: %s",
+    #     optimizer_pspecs,
+    # )
     nnx.update(self.optimizer, optimizer_sharded_state)
 
   def jit_train_and_eval_step(self, skip_jit: bool = False):
@@ -366,9 +399,12 @@ class PeftTrainer:
     else:
       if self._jitted_train_step_fn is None:
         mesh = pxla.thread_resources.env.physical_mesh
+        print(f"Jitting train and eval step functions with mesh: {mesh}")
         self._shard_optimizer(mesh)
         self._jitted_train_step_fn = nnx.jit(
-            train_step, donate_argnames=("model", "optimizer",)
+            train_step, 
+            donate_argnames=("optimizer",), 
+            # in_shardings=(nnx.get_named_sharding(nnx.state(self.model), mesh), nnx.get_named_sharding(self.optimizer.opt_state, mesh), None)
         )
         self._jitted_eval_step_fn = nnx.jit(
             eval_step, donate_argnames=("model",)
@@ -497,13 +533,34 @@ class PeftTrainer:
     with time_measure("Train loop"):
       while True:
         self._prof.maybe_activate(self._train_steps)
-        with jax.profiler.TraceAnnotation("peft_train"):
+        with jax.profiler.StepTraceAnnotation(
+            "train", step_num=self._train_steps
+        ):
+          print(f"Starting train step {self._train_steps}")
           train_example = None
           if self.data_hooks:
             train_example = self.data_hooks.load_next_train_batch(self)
           else:
             try:
               train_example = next(train_iterator)
+              if self._train_steps <= 1: 
+                model_state = nnx.state(self.model)
+                model_pspecs = nnx.get_partition_spec(model_state)
+                # print(
+                #   "Sharding model state with partition specs: %s",
+                #   model_pspecs,
+                # )
+                model_shardings = nn.logical_to_mesh_sharding(model_pspecs, mesh, self.logical_axis_rules)
+                print(f"#####model_shardings={model_shardings=}")
+                optimizer_state_arrays = nnx.state(
+                  self.optimizer, nnx.optimizer.OptState
+                )  # select only the optimizer state
+                optimizer_pspecs = nnx.get_partition_spec(optimizer_state_arrays)
+                optimizer_shardings = nn.logical_to_mesh_sharding(optimizer_pspecs, mesh, self.logical_axis_rules)
+                print(
+                  f"Sharding optimizer state with partition specs after adjust: {optimizer_shardings}",
+                  optimizer_shardings,
+                )
               if not self.is_managed_externally:
                 # TODO(mridulsahu): Add support to restore the iterator state
                 # instead of skipping the already trained examples.
@@ -515,6 +572,7 @@ class PeftTrainer:
             except StopIteration:
               pass
           if train_example is None:
+            print("Training dataset is exhausted. Stopping training.")
             break
           if (
               eval_ds
@@ -527,10 +585,11 @@ class PeftTrainer:
               self.config.max_steps is not None
               and self._train_steps >= self.config.max_steps
           ):
+            print("Reached max training steps. Stopping training.")
             break
 
           train_example = self._prepare_inputs(train_example)
-          train_example = self._shard_input(train_example)
+          # train_example = self._shard_input(train_example)
           # global_batch_size = _calculate_global_batch_size(train_example)
 
           self._throttler.wait_for_next()
@@ -565,6 +624,9 @@ class PeftTrainer:
           #     self.metrics_logger.get_metric("loss", "train"),
           #     self.metrics_logger.get_metric("perplexity", "train"),
           # )
+          jax.block_until_ready(train_loss)
+          loss = jax.device_get(train_loss)
+          print(f"###########{loss=}, {self._train_steps=}")
 
           # Actual checkpoint frequency is configured by checkpointing_options.
           self.checkpoint_manager.save(
@@ -580,6 +642,7 @@ class PeftTrainer:
     if self.training_hooks:
       self.training_hooks.on_train_end(self)
     if not self.is_managed_externally:
+      print("close trainer")
       self.close()
 
   def _save_last_checkpoint(self):

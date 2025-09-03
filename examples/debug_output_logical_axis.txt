@@ -1,0 +1,1908 @@
+HBM usage before loading model:
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_0(process=0,(0,0,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_1(process=0,(1,0,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_2(process=0,(0,1,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_3(process=0,(1,1,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_4(process=0,(0,2,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_5(process=0,(1,2,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_6(process=0,(0,3,0,0))
+Using 32.5 KiB / 31.2 GiB (0.000099%) on TPU_7(process=0,(1,3,0,0))
+Updating keys from env and command line: ['run_name', 'model_name', 'load_parameters_path', 'async_checkpointing', 'checkpoint_period', 'weight_dtype', 'remat_policy', 'attention', 'base_output_directory', 'tokenizer_path', 'tokenizer_type', 'per_device_batch_size', 'steps', 'skip_jax_distributed_system', 'max_target_length', 'max_prefill_predict_length', 'opt_type']
+Running Model: llama3.1-8b
+Updating following parameters in config
+
+base_emb_dim: 4096
+base_num_query_heads: 32
+base_num_kv_heads: 8
+base_num_decoder_layers: 32
+base_mlp_dim: 14336
+head_dim: 128
+mlp_activations: ['silu', 'linear']
+vocab_size: 128256
+enable_dropout: False
+logits_via_embedding: False
+normalization_layer_epsilon: 1e-05
+rope_max_timescale: 500000
+decoder_block: llama2
+Updating keys from model: ['base_emb_dim', 'base_num_query_heads', 'base_num_kv_heads', 'base_num_decoder_layers', 'base_mlp_dim', 'head_dim', 'mlp_activations', 'vocab_size', 'enable_dropout', 'logits_via_embedding', 'normalization_layer_epsilon', 'rope_max_timescale', 'decoder_block']
+Skipping jax distributed system due to skip_jax_distributed_system=True flag.
+Not using emergency checkpoint, ignoring local_checkpoint_directory, local_checkpoint_period, use_replicator_service and replicator_backup_interval_minutes
+dataset_type set to tfds, will use keys['dataset_path']='' and keys['dataset_name']='c4/en:3.0.1'
+Config param activations_in_float32: False
+Config param adam_b1: 0.9
+Config param adam_b2: 0.95
+Config param adam_eps: 1e-08
+Config param adam_eps_root: 0.0
+Config param adam_weight_decay: 0.1
+Config param add_bos: True
+Config param add_eos: True
+Config param allow_split_physical_axes: False
+Config param ar_cache_axis_order: 1,2,0,3
+Config param async_checkpointing: False
+Config param attention: dot_product
+Config param attention_type: global
+Config param attn_logits_soft_cap: None
+Config param autoregressive_decode_assert: 
+Config param base_emb_dim: 4096
+Config param base_mlp_dim: 14336
+Config param base_moe_mlp_dim: 7168
+Config param base_num_decoder_layers: 32
+Config param base_num_kv_heads: 8
+Config param base_num_query_heads: 32
+Config param base_output_directory: gs://dummy_output_dir
+Config param beta_fast: 32
+Config param beta_slow: 1
+Config param capacity_factor: -1.0
+Config param cast_logits_to_fp32: True
+Config param checkpoint_conversion_fn: None
+Config param checkpoint_dir: gs://dummy_output_dir/test-tunix-maxtext-llama3.1-8b/checkpoints/
+Config param checkpoint_is_quantized: False
+Config param checkpoint_period: 5
+Config param checkpoint_storage_concurrent_gb: 96
+Config param checkpoint_storage_target_data_file_size_bytes: 2147483648
+Config param checkpoint_storage_use_ocdbt: True
+Config param checkpoint_storage_use_zarr3: True
+Config param chunk_attn_window_size: 0
+Config param collect_stack_trace: False
+Config param colocated_python_data_input: False
+Config param compile_topology: 
+Config param compile_topology_num_slices: -1
+Config param compiled_trainstep_file: 
+Config param compute_axis_order: 0,1,2,3
+Config param constant_bound_config: []
+Config param context: remat
+Config param context_parallel_load_balance: True
+Config param context_parallel_size: 1
+Config param cosine_learning_rate_final_fraction: 0.1
+Config param custom_mesh: 
+Config param data_sharding: (('data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive'),)
+Config param data_shuffle_seed: 0
+Config param dataset_name: c4/en:3.0.1
+Config param dataset_path: 
+Config param dataset_type: tfds
+Config param dcn_autoregressive_parallelism: 1
+Config param dcn_context_autoregressive_parallelism: 1
+Config param dcn_context_parallelism: 1
+Config param dcn_data_parallelism: -1
+Config param dcn_expert_parallelism: 1
+Config param dcn_fsdp_parallelism: 1
+Config param dcn_fsdp_transpose_parallelism: 1
+Config param dcn_parallelism: [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+Config param dcn_pipeline_parallelism: 1
+Config param dcn_sequence_parallelism: 1
+Config param dcn_tensor_parallelism: 1
+Config param dcn_tensor_sequence_parallelism: 1
+Config param dcn_tensor_transpose_parallelism: 1
+Config param decode_sampling_nucleus_p: -1
+Config param decode_sampling_strategy: greedy
+Config param decode_sampling_temperature: 1.0
+Config param decode_sampling_top_k: 0
+Config param decoder_block: DecoderBlockType.LLAMA2
+Config param decoder_layer_input: device
+Config param dpo_beta: 0.1
+Config param dpo_label_smoothing: 0.0
+Config param dropout_rate: 0.0
+Config param dtype: bfloat16
+Config param dtype_mm: float32
+Config param dump_hlo: False
+Config param dump_hlo_delete_local_after: True
+Config param dump_hlo_gcs_dir: 
+Config param dump_hlo_local_dir: /tmp/xla_dump/
+Config param dump_hlo_local_module_name: jit_train_step
+Config param dump_hlo_module_name: jit_train_step
+Config param dump_hlo_upload_all: False
+Config param dump_hlo_xla_flags: 
+Config param dump_step: -1
+Config param emb_dim: 4096
+Config param enable_checkpoint_cloud_logger: False
+Config param enable_checkpointing: True
+Config param enable_data_shuffling: True
+Config param enable_dropout: False
+Config param enable_emergency_checkpoint: False
+Config param enable_gcp_goodput_metrics: True
+Config param enable_gcp_step_deviation_metrics: True
+Config param enable_goodput_recording: False
+Config param enable_jax_profiler: False
+Config param enable_llm_inference_pool: False
+Config param enable_model_warmup: False
+Config param enable_nnx: False
+Config param enable_orbax_v1: False
+Config param enable_padding_causal_mask: True
+Config param enable_pathways_goodput: False
+Config param enable_prefix_caching: False
+Config param enable_single_controller: False
+Config param enable_single_replica_ckpt_restoring: False
+Config param enable_tensorboard: True
+Config param eval_data_columns: ['text']
+Config param eval_dataset_name: c4/en:3.0.1
+Config param eval_image_column: image
+Config param eval_interval: -1
+Config param eval_per_device_batch_size: 1.0
+Config param eval_split: validation
+Config param eval_steps: -1
+Config param expansion_factor_real_data: -1
+Config param expert_shard_attention_option: fsdp
+Config param final_logits_soft_cap: None
+Config param first_num_dense_layers: 0
+Config param float32_logits: False
+Config param float32_qk_product: False
+Config param force_unroll: False
+Config param freeze_vision_encoder_params: True
+Config param fused_mlp: False
+Config param fused_qkv: False
+Config param gcs_metrics: False
+Config param generate_slice: v5e-16
+Config param global_batch_size_to_eval_on: 8
+Config param global_batch_size_to_load: 8
+Config param global_batch_size_to_load_eval: 8
+Config param global_batch_size_to_train_on: 8
+Config param global_parameter_scale: 1
+Config param goodput_upload_interval_seconds: 30
+Config param gradient_accumulation_steps: 1
+Config param gradient_clipping_threshold: 1.0
+Config param grain_eval_files: 
+Config param grain_file_type: arrayrecord
+Config param grain_train_files: 
+Config param grain_worker_count: 1
+Config param grain_worker_count_eval: 1
+Config param hardware: tpu
+Config param head_dim: 128
+Config param heartbeat_reporting_interval_in_seconds: 5
+Config param hf_data_dir: 
+Config param hf_eval_files: 
+Config param hf_eval_split: 
+Config param hf_path: 
+Config param hf_train_files: 
+Config param hidden_size_for_vit: 1408
+Config param ici_autoregressive_parallelism: 1
+Config param ici_context_autoregressive_parallelism: 1
+Config param ici_context_parallelism: 1
+Config param ici_data_parallelism: 1
+Config param ici_expert_parallelism: 1
+Config param ici_fsdp_parallelism: -1
+Config param ici_fsdp_transpose_parallelism: 1
+Config param ici_parallelism: [1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+Config param ici_pipeline_parallelism: 1
+Config param ici_sequence_parallelism: 1
+Config param ici_tensor_parallelism: 1
+Config param ici_tensor_sequence_parallelism: 1
+Config param ici_tensor_transpose_parallelism: 1
+Config param image_path: 
+Config param image_placeholder: <|image|>
+Config param image_size_for_vit: 896
+Config param inference_benchmark_test: False
+Config param inference_metadata_file: 
+Config param inference_microbenchmark_log_file_path: 
+Config param inference_microbenchmark_loop_iters: 10
+Config param inference_microbenchmark_num_samples: [1, 2, 3, 4, 5]
+Config param inference_microbenchmark_prefill_lengths: 64,128,256,512,1024
+Config param inference_microbenchmark_stages: prefill,generate
+Config param inference_server: MaxtextInterleavedServer
+Config param inhomogeneous_layer_cycle_interval: 1
+Config param init_weights_seed: 0
+Config param input_data_sharding_logical_axes: ['activation_embed_and_logits_batch', 'activation_norm_length']
+Config param interleave_moe_layer_step: 1
+Config param intermediate_size_for_vit: 5632
+Config param jax_cache_dir: ~/jax_cache
+Config param jax_debug_log_modules: 
+Config param jax_distributed_initialization_timeout: 300
+Config param jax_profiler_port: 9999
+Config param key_proj: remat
+Config param kv_lora_rank: 512
+Config param kv_quant_axis: heads_and_dkv
+Config param kv_quant_dtype: int8
+Config param learning_rate: 3e-05
+Config param learning_rate_schedule_steps: 10
+Config param load_balance_loss_weight: 0.01
+Config param load_from_prefill_dir: False
+Config param load_full_state_path: 
+Config param load_parameters_path: gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items
+Config param local_checkpoint_directory: 
+Config param local_checkpoint_period: 0
+Config param local_rope_max_timescale: -1
+Config param log_config: True
+Config param log_period: 100
+Config param logical_axis_rules: (('activation_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_batch_no_exp', ('data', 'fsdp', 'fsdp_transpose')), ('activation_embed_and_logits_batch', ('data', 'stage', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_heads', ('tensor', 'tensor_transpose', 'sequence', 'tensor_sequence', 'autoregressive')), ('activation_kv_heads', ('tensor', 'tensor_transpose', 'sequence', 'tensor_sequence')), ('activation_length', ('sequence', 'context', 'expert')), ('activation_length', ('context', 'expert')), ('activation_length_no_exp', ('sequence', 'context')), ('activation_length_no_exp', ('context',)), ('activation_norm_length', ('tensor_sequence', 'context', 'sequence')), ('activation_q_length', ('context', 'expert')), ('activation_q_length_no_exp', ('context',)), ('prefill_activation_length', ('sequence', 'context')), ('prefill_activation_norm_length', ('tensor_sequence', 'context', 'sequence')), ('activation_kv_length', ()), ('activation_embed', ('tensor', 'tensor_transpose')), ('activation_mlp', ('tensor', 'tensor_transpose', 'tensor_sequence')), ('activation_kv', ('tensor', 'tensor_transpose', 'tensor_sequence')), ('activation_prefill_kv_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_kv_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_kv_batch_no_exp', ('data', 'fsdp', 'fsdp_transpose')), ('activation_kv_head_dim', ('tensor', 'tensor_transpose', 'tensor_sequence')), ('activation_vocab', ('tensor', 'tensor_transpose', 'sequence', 'tensor_sequence')), ('activation_vocab', ('tensor', 'tensor_transpose')), ('activation_vocab', 'tensor_sequence'), ('activation_vocab', ('sequence', 'context')), ('activation_stage', 'stage'), ('activation_exp', ('expert',)), ('decode_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('decode_length', ('sequence',)), ('mlp', ('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive')), ('vocab', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('heads', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('q_heads', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('kv_heads', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('embed', ('fsdp', 'fsdp_transpose', 'sequence', 'tensor_transpose', 'context', 'expert')), ('embed', ('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert')), ('embed', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), ('embed', ('fsdp', 'sequence', 'context', 'expert')), ('embed_no_exp', ('fsdp', 'fsdp_transpose', 'sequence', 'tensor_transpose', 'context')), ('embed_no_exp', ('fsdp', 'sequence', 'tensor_transpose', 'context')), ('embed_no_exp', ('fsdp', 'fsdp_transpose', 'sequence', 'context')), ('embed_no_exp', ('fsdp', 'sequence', 'context')), ('embed_tensor_transpose', ('tensor_transpose',)), ('q_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'tensor_transpose', 'expert')), ('q_lora', ('fsdp', 'sequence', 'context', 'tensor_transpose', 'expert')), ('q_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), ('q_lora', ('fsdp', 'sequence', 'context', 'expert')), ('kv_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'tensor_transpose', 'expert')), ('kv_lora', ('fsdp', 'sequence', 'context', 'tensor_transpose', 'expert')), ('kv_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), ('kv_lora', ('fsdp', 'sequence', 'context', 'expert')), ('norm', ('tensor', 'tensor_transpose')), ('layers', 'stage'), ('kv', ()), ('kv_head_dim', ()), ('cache_batch_prefill', ()), ('cache_batch', ()), ('cache_heads_none', ()), ('cache_heads', ('autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence')), ('cache_heads', ('autoregressive', 'tensor', 'tensor_sequence')), ('cache_kv', ()), ('cache_sequence', ()), ('exp', 'expert'), ('paged_kv_heads', ('tensor',)), ('num_pages', ()), ('tokens_per_page', ()), ('paged_kv_head_dim_size', ()))
+Config param logits_dot_in_fp32: False
+Config param logits_via_embedding: False
+Config param lora_input_adapters_path: 
+Config param matmul_precision: default
+Config param max_checkify: False
+Config param max_corpus_chars: 10000000
+Config param max_position_embeddings: 163840
+Config param max_prefill_predict_length: 4
+Config param max_target_length: 1024
+Config param megablox: True
+Config param mesh_axes: ['data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive']
+Config param metrics_dir: gs://dummy_output_dir/test-tunix-maxtext-llama3.1-8b/metrics/
+Config param metrics_file: 
+Config param micro_batch_size_to_eval_on: 8
+Config param micro_batch_size_to_train_on: 8
+Config param mla_naive_kvcache: True
+Config param mlp_activations: ['silu', 'linear']
+Config param mlp_dim: 14336
+Config param mlpwi: remat
+Config param mlpwi_0: remat
+Config param mlpwi_1: remat
+Config param mlpwo: remat
+Config param model_call_mode: 
+Config param model_fsdp_ag_once: False
+Config param model_name: llama3.1-8b
+Config param moe_mlp_dim: 7168
+Config param monitor_goodput: False
+Config param monitor_step_time_deviation: True
+Config param mscale: 1.0
+Config param mtp_eval_target_module: 0
+Config param mtp_loss_scaling_factor: 0.1
+Config param mtp_num_layers: 0
+Config param mu_dtype: bfloat16
+Config param multi_sampling: False
+Config param n_routing_groups: -1
+Config param nope_layer_interval: -1
+Config param norm_topk_prob: False
+Config param normalization_layer_epsilon: 1e-05
+Config param normalize_embedding_logits: True
+Config param num_attention_heads_for_vit: 16
+Config param num_channels_for_vit: 3
+Config param num_decoder_layers: 32
+Config param num_epoch: 1
+Config param num_experts: 1
+Config param num_experts_per_tok: 1
+Config param num_hidden_layers_for_vit: 34
+Config param num_kv_heads: 8
+Config param num_layers_per_pipeline_stage: 1
+Config param num_pipeline_microbatches: -1
+Config param num_pipeline_repeats: -1
+Config param num_query_heads: 32
+Config param num_slices: 1
+Config param opt_type: sgd
+Config param optimize_mesh_for_tpu_v6e: False
+Config param optimizer_memory_host_offload: False
+Config param original_max_position_embeddings: 4096
+Config param out_proj: remat
+Config param override_model_config: False
+Config param packing: True
+Config param pagedattn_head_dim_alignment: 128
+Config param pagedattn_max_pages_per_group: 32
+Config param pagedattn_num_pages: 64
+Config param pagedattn_pages_per_compute_block: 4
+Config param pagedattn_tokens_per_page: 32
+Config param param_scan_axis: 1
+Config param parameter_memory_host_offload: False
+Config param patch_size_for_vit: 14
+Config param per_device_batch_size: 1.0
+Config param pipeline_delay_activation_forwarding: False
+Config param pipeline_fsdp_ag_once: False
+Config param pipeline_parallel_layers: -1
+Config param pixel_shuffle_ratio_for_vit: 0.5
+Config param prefill_cache_axis_order: 1,2,0,3
+Config param prefill_cache_dir: 
+Config param prefill_chunk_size: 256
+Config param prefill_slice: v5e-16
+Config param prefix_caching_dram_byte: 100000000000
+Config param prefix_caching_hbm_byte: 10000000000
+Config param profile_cleanly: True
+Config param profile_periodically_period: -1
+Config param profiler: 
+Config param profiler_steps: 5
+Config param projector_dropout_for_vit: 0.0
+Config param projector_input_dim_for_vit: 4096
+Config param projector_output_dim_for_vit: 4096
+Config param prometheus_port: 0
+Config param prompt: I love to
+Config param q_lora_rank: 0
+Config param qk_nope_head_dim: 128
+Config param qk_rope_head_dim: 64
+Config param qkv_proj: remat
+Config param quant_cfg_path: 
+Config param quantization: 
+Config param quantization_calibration_method: absmax
+Config param quantization_local_shard_count: 1
+Config param quantize_kvcache: False
+Config param query_proj: remat
+Config param ragged_block_size: 256
+Config param record_internal_nn_metrics: 0
+Config param remat_policy: none
+Config param remat_policy_for_vit: minimal
+Config param replicate_quant_scale: False
+Config param replicator_backup_interval_minutes: 0
+Config param report_heartbeat_metric_for_gcp_monitoring: False
+Config param report_performance_metric_for_gcp_monitoring: False
+Config param reshape_q: False
+Config param return_log_prob: False
+Config param reuse_example_batch: 0
+Config param rope_factor: 40
+Config param rope_linear_scaling_factor: 1.0
+Config param rope_max_timescale: 500000
+Config param rope_min_timescale: 1
+Config param rope_theta_for_vit: 10000
+Config param rope_type: default
+Config param rope_use_scale: True
+Config param routed_bias: False
+Config param routed_scaling_factor: 1.0
+Config param routed_score_func: 
+Config param run_name: test-tunix-maxtext-llama3.1-8b
+Config param sa_block_kv: 512
+Config param sa_block_kv_compute: 512
+Config param sa_block_kv_dkv: 512
+Config param sa_block_kv_dkv_compute: 512
+Config param sa_block_kv_dq: 512
+Config param sa_block_q: 512
+Config param sa_block_q_dkv: 512
+Config param sa_block_q_dq: 512
+Config param sa_k_layout: HEAD_DIM_MINOR
+Config param sa_q_layout: HEAD_DIM_MINOR
+Config param sa_use_fused_bwd_kernel: False
+Config param sa_v_layout: HEAD_DIM_MINOR
+Config param save_checkpoint_on_completion: True
+Config param save_config_to_gcs: False
+Config param save_quantized_params_path: 
+Config param scan_layers: True
+Config param scan_layers_per_stage: False
+Config param scan_pipeline_iterations: True
+Config param set_remat_policy_on_layers_per_stage: False
+Config param set_remat_policy_on_pipeline_iterations: True
+Config param sft_train_on_completion_only: False
+Config param sharding_tolerance: 0.02
+Config param shardy: True
+Config param shared_experts: 1
+Config param skip_first_n_steps_for_profiler: 1
+Config param skip_jax_distributed_system: True
+Config param sliding_window_size: 0
+Config param source_checkpoint_layout: orbax
+Config param sparse_matmul: True
+Config param stack_prefill_result_cache: False
+Config param stack_trace_interval_seconds: 600
+Config param stack_trace_to_cloud: False
+Config param step_deviation_interval_seconds: 30
+Config param steps: 10
+Config param subslice_shape: 
+Config param target_eval_loss: 0.0
+Config param temperature_tuning: False
+Config param tensorboard_dir: gs://dummy_output_dir/test-tunix-maxtext-llama3.1-8b/tensorboard/
+Config param tile_activation_dim: 1024
+Config param tile_batch_seq: 512
+Config param tile_size_for_vit: 336
+Config param tile_weight_dim: 1024
+Config param tokenize_eval_data: True
+Config param tokenize_train_data: True
+Config param tokenizer_path: assets/tokenizer_llama3.tiktoken
+Config param tokenizer_type: tiktoken
+Config param topk_routing_group: -1
+Config param train_data_columns: ['text']
+Config param train_image_column: image
+Config param train_split: train
+Config param trainable_position_size: -1
+Config param upload_all_profiler_results: False
+Config param use_chat_template: False
+Config param use_chunked_prefill: False
+Config param use_dpo: False
+Config param use_iota_embed: False
+Config param use_multimodal: False
+Config param use_post_attn_norm: False
+Config param use_post_ffw_norm: False
+Config param use_qk_norm: False
+Config param use_qwix_quantization: False
+Config param use_ragged_attention: False
+Config param use_random_routing: False
+Config param use_replicator_service: False
+Config param use_sft: False
+Config param use_untrainable_positional_embedding: False
+Config param use_vertex_tensorboard: False
+Config param using_pipeline_parallelism: False
+Config param v_head_dim: 128
+Config param value_proj: remat
+Config param vertex_tensorboard_project: 
+Config param vertex_tensorboard_region: 
+Config param vision_output_dim_for_vit: 4096
+Config param vocab_size: 128256
+Config param warmup_steps_fraction: 0.1
+Config param weight_dtype: bfloat16
+Num_devices: 8, shape (1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+The abstract NNX state (all leaves are abstract arrays):
+State({
+  'decoder': {
+    'decoder_norm': {
+      'scale': Param( # 4,096 (8.2 KB)
+        value=ShapeDtypeStruct(shape=(4096,), dtype=bfloat16),
+        mesh=None,
+        sharding=('norm',),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )
+    },
+    'layers': {
+      'mlp': {
+        'wi_0': {
+          'kernel': Param( # 1,879,048,192 (3.8 GB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 14336), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'mlp'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'wi_1': {
+          'kernel': Param( # 1,879,048,192 (3.8 GB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 14336), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'mlp'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'wo': {
+          'kernel': Param( # 1,879,048,192 (3.8 GB)
+            value=ShapeDtypeStruct(shape=(14336, 32, 4096), dtype=bfloat16),
+            mesh=None,
+            sharding=('mlp', 'layers', 'embed'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        }
+      },
+      'post_self_attention_layer_norm': {
+        'scale': Param( # 131,072 (262.1 KB)
+          value=ShapeDtypeStruct(shape=(4096, 32), dtype=bfloat16),
+          mesh=None,
+          sharding=('norm', 'layers'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'pre_self_attention_layer_norm': {
+        'scale': Param( # 131,072 (262.1 KB)
+          value=ShapeDtypeStruct(shape=(4096, 32), dtype=bfloat16),
+          mesh=None,
+          sharding=('norm', 'layers'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'self_attention': {
+        'key': {
+          'kernel': Param( # 134,217,728 (268.4 MB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 8, 128), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'out': {
+          'kernel': Param( # 536,870,912 (1.1 GB)
+            value=ShapeDtypeStruct(shape=(32, 32, 128, 4096), dtype=bfloat16),
+            mesh=None,
+            sharding=('heads', 'layers', 'kv', 'embed'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'query': {
+          'kernel': Param( # 536,870,912 (1.1 GB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 32, 128), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'q_heads', 'kv'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'value': {
+          'kernel': Param( # 134,217,728 (268.4 MB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 8, 128), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        }
+      }
+    },
+    'logits_dense': {
+      'kernel': Param( # 525,336,576 (1.1 GB)
+        value=ShapeDtypeStruct(shape=(4096, 128256), dtype=bfloat16),
+        mesh=None,
+        sharding=('embed', 'vocab'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )
+    },
+    'to_nnx__rngs': {
+      'dropout': {
+        'count': RngCount( # 1 (4 B)
+          value=ShapeDtypeStruct(shape=(), dtype=uint32),
+          tag='dropout'
+        ),
+        'key': RngKey( # 1 (8 B)
+          value=ShapeDtypeStruct(shape=(), dtype=key<fry>),
+          tag='dropout'
+        )
+      },
+      'params': {
+        'count': RngCount( # 1 (4 B)
+          value=ShapeDtypeStruct(shape=(), dtype=uint32),
+          tag='params'
+        ),
+        'key': RngKey( # 1 (8 B)
+          value=ShapeDtypeStruct(shape=(), dtype=key<fry>),
+          tag='params'
+        )
+      }
+    }
+  },
+  'token_embedder': {
+    'embedding': Param( # 525,336,576 (1.1 GB)
+      value=ShapeDtypeStruct(shape=(128256, 4096), dtype=bfloat16),
+      sharding=('vocab', 'embed')
+    )
+  }
+})
+Num_devices: 8, shape (1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+TunixMaxTextLlama( # Param: 8,030,261,248 (16.1 GB), RngState: 4 (24 B), Total: 8,030,261,252 (16.1 GB)
+  base=Transformer( # Param: 8,030,261,248 (16.1 GB), RngState: 4 (24 B), Total: 8,030,261,252 (16.1 GB)
+    config=<MaxText.pyconfig.HyperParameters object at 0x7c117ab74800>,
+    decoder=ToNNX( # Param: 7,504,924,672 (15.0 GB), RngState: 4 (24 B), Total: 7,504,924,676 (15.0 GB)
+      decoder_norm={'scale': Param( # 4,096 (8.2 KB)
+        value=Array(shape=(4096,), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('norm',),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )},
+      layers={'mlp': {'wi_0': {'kernel': Param( # 1,879,048,192 (3.8 GB)
+        value=Array(shape=(4096, 32, 14336), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'mlp'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'wi_1': {'kernel': Param( # 1,879,048,192 (3.8 GB)
+        value=Array(shape=(4096, 32, 14336), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'mlp'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'wo': {'kernel': Param( # 1,879,048,192 (3.8 GB)
+        value=Array(shape=(14336, 32, 4096), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('mlp', 'layers', 'embed'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}}, 'post_self_attention_layer_norm': {'scale': Param( # 131,072 (262.1 KB)
+        value=Array(shape=(4096, 32), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('norm', 'layers'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'pre_self_attention_layer_norm': {'scale': Param( # 131,072 (262.1 KB)
+        value=Array(shape=(4096, 32), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('norm', 'layers'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'self_attention': {'key': {'kernel': Param( # 134,217,728 (268.4 MB)
+        value=Array(shape=(4096, 32, 8, 128), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'out': {'kernel': Param( # 536,870,912 (1.1 GB)
+        value=Array(shape=(32, 32, 128, 4096), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('heads', 'layers', 'kv', 'embed'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'query': {'kernel': Param( # 536,870,912 (1.1 GB)
+        value=Array(shape=(4096, 32, 32, 128), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'q_heads', 'kv'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'value': {'kernel': Param( # 134,217,728 (268.4 MB)
+        value=Array(shape=(4096, 32, 8, 128), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}}},
+      logits_dense={'kernel': Param( # 525,336,576 (1.1 GB)
+        value=Array(shape=(4096, 128256), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'vocab'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )},
+      to_nnx__module=Decoder(
+          # attributes
+          config = <MaxText.pyconfig.HyperParameters object at 0x7c117ab74800>
+          mesh = Mesh(axis_sizes=(1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1), axis_names=('data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive'), axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto))
+          quant = None
+          model_mode = 'train'
+      ),
+      to_nnx__rngs=Rngs( # RngState: 4 (24 B)
+        dropout=RngStream( # RngState: 2 (12 B)
+          count=RngCount( # 1 (4 B)
+            value=Array(1, dtype=uint32),
+            tag='dropout'
+          ),
+          key=RngKey( # 1 (8 B)
+            value=Array((), dtype=key<fry>) overlaying:
+            [ 507451445 1853169794],
+            tag='dropout'
+          ),
+          tag='dropout'
+        ),
+        params=RngStream( # RngState: 2 (12 B)
+          count=RngCount( # 1 (4 B)
+            value=Array(1, dtype=uint32),
+            tag='params'
+          ),
+          key=RngKey( # 1 (8 B)
+            value=Array((), dtype=key<fry>) overlaying:
+            [ 928981903 3453687069],
+            tag='params'
+          ),
+          tag='params'
+        )
+      )
+    ),
+    mesh=Mesh(axis_sizes=(1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1), axis_names=('data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive'), axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)),
+    model_mode='train',
+    quant=None,
+    token_embedder=Embed( # Param: 525,336,576 (1.1 GB)
+      attend_dtype=dtype(bfloat16),
+      cast_input_dtype=None,
+      config=<MaxText.pyconfig.HyperParameters object at 0x7c117ab74800>,
+      dtype=dtype(bfloat16),
+      embedding=Param( # 525,336,576 (1.1 GB)
+        value=Array(shape=(128256, 4096), dtype=dtype(bfloat16)),
+        sharding=('vocab', 'embed')
+      ),
+      num_embeddings=128256,
+      num_features=4096
+    ),
+    vision_encoder=None
+  ),
+  use_attention_mask=False
+)
+Model initialized successfully
+Model mesh shape: OrderedDict({'data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1})
+HBM usage after loading ref model:
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_0(process=0,(0,0,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_1(process=0,(1,0,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_2(process=0,(0,1,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_3(process=0,(1,1,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_4(process=0,(0,2,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_5(process=0,(1,2,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_6(process=0,(0,3,0,0))
+Using 1.9 GiB / 31.2 GiB (5.985254%) on TPU_7(process=0,(1,3,0,0))
+Updating keys from env and command line: ['run_name', 'model_name', 'load_parameters_path', 'async_checkpointing', 'checkpoint_period', 'weight_dtype', 'remat_policy', 'attention', 'base_output_directory', 'tokenizer_path', 'tokenizer_type', 'per_device_batch_size', 'steps', 'skip_jax_distributed_system', 'max_target_length', 'max_prefill_predict_length', 'opt_type']
+Running Model: llama3.1-8b
+Updating following parameters in config
+
+base_emb_dim: 4096
+base_num_query_heads: 32
+base_num_kv_heads: 8
+base_num_decoder_layers: 32
+base_mlp_dim: 14336
+head_dim: 128
+mlp_activations: ['silu', 'linear']
+vocab_size: 128256
+enable_dropout: False
+logits_via_embedding: False
+normalization_layer_epsilon: 1e-05
+rope_max_timescale: 500000
+decoder_block: llama2
+Updating keys from model: ['base_emb_dim', 'base_num_query_heads', 'base_num_kv_heads', 'base_num_decoder_layers', 'base_mlp_dim', 'head_dim', 'mlp_activations', 'vocab_size', 'enable_dropout', 'logits_via_embedding', 'normalization_layer_epsilon', 'rope_max_timescale', 'decoder_block']
+Skipping jax distributed system due to skip_jax_distributed_system=True flag.
+Not using emergency checkpoint, ignoring local_checkpoint_directory, local_checkpoint_period, use_replicator_service and replicator_backup_interval_minutes
+dataset_type set to tfds, will use keys['dataset_path']='' and keys['dataset_name']='c4/en:3.0.1'
+Config param activations_in_float32: False
+Config param adam_b1: 0.9
+Config param adam_b2: 0.95
+Config param adam_eps: 1e-08
+Config param adam_eps_root: 0.0
+Config param adam_weight_decay: 0.1
+Config param add_bos: True
+Config param add_eos: True
+Config param allow_split_physical_axes: False
+Config param ar_cache_axis_order: 1,2,0,3
+Config param async_checkpointing: False
+Config param attention: dot_product
+Config param attention_type: global
+Config param attn_logits_soft_cap: None
+Config param autoregressive_decode_assert: 
+Config param base_emb_dim: 4096
+Config param base_mlp_dim: 14336
+Config param base_moe_mlp_dim: 7168
+Config param base_num_decoder_layers: 32
+Config param base_num_kv_heads: 8
+Config param base_num_query_heads: 32
+Config param base_output_directory: gs://dummy_output_dir
+Config param beta_fast: 32
+Config param beta_slow: 1
+Config param capacity_factor: -1.0
+Config param cast_logits_to_fp32: True
+Config param checkpoint_conversion_fn: None
+Config param checkpoint_dir: gs://dummy_output_dir/test-tunix-maxtext-llama3.1-8b/checkpoints/
+Config param checkpoint_is_quantized: False
+Config param checkpoint_period: 5
+Config param checkpoint_storage_concurrent_gb: 96
+Config param checkpoint_storage_target_data_file_size_bytes: 2147483648
+Config param checkpoint_storage_use_ocdbt: True
+Config param checkpoint_storage_use_zarr3: True
+Config param chunk_attn_window_size: 0
+Config param collect_stack_trace: False
+Config param colocated_python_data_input: False
+Config param compile_topology: 
+Config param compile_topology_num_slices: -1
+Config param compiled_trainstep_file: 
+Config param compute_axis_order: 0,1,2,3
+Config param constant_bound_config: []
+Config param context: remat
+Config param context_parallel_load_balance: True
+Config param context_parallel_size: 1
+Config param cosine_learning_rate_final_fraction: 0.1
+Config param custom_mesh: 
+Config param data_sharding: (('data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive'),)
+Config param data_shuffle_seed: 0
+Config param dataset_name: c4/en:3.0.1
+Config param dataset_path: 
+Config param dataset_type: tfds
+Config param dcn_autoregressive_parallelism: 1
+Config param dcn_context_autoregressive_parallelism: 1
+Config param dcn_context_parallelism: 1
+Config param dcn_data_parallelism: -1
+Config param dcn_expert_parallelism: 1
+Config param dcn_fsdp_parallelism: 1
+Config param dcn_fsdp_transpose_parallelism: 1
+Config param dcn_parallelism: [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+Config param dcn_pipeline_parallelism: 1
+Config param dcn_sequence_parallelism: 1
+Config param dcn_tensor_parallelism: 1
+Config param dcn_tensor_sequence_parallelism: 1
+Config param dcn_tensor_transpose_parallelism: 1
+Config param decode_sampling_nucleus_p: -1
+Config param decode_sampling_strategy: greedy
+Config param decode_sampling_temperature: 1.0
+Config param decode_sampling_top_k: 0
+Config param decoder_block: DecoderBlockType.LLAMA2
+Config param decoder_layer_input: device
+Config param dpo_beta: 0.1
+Config param dpo_label_smoothing: 0.0
+Config param dropout_rate: 0.0
+Config param dtype: bfloat16
+Config param dtype_mm: float32
+Config param dump_hlo: False
+Config param dump_hlo_delete_local_after: True
+Config param dump_hlo_gcs_dir: 
+Config param dump_hlo_local_dir: /tmp/xla_dump/
+Config param dump_hlo_local_module_name: jit_train_step
+Config param dump_hlo_module_name: jit_train_step
+Config param dump_hlo_upload_all: False
+Config param dump_hlo_xla_flags: 
+Config param dump_step: -1
+Config param emb_dim: 4096
+Config param enable_checkpoint_cloud_logger: False
+Config param enable_checkpointing: True
+Config param enable_data_shuffling: True
+Config param enable_dropout: False
+Config param enable_emergency_checkpoint: False
+Config param enable_gcp_goodput_metrics: True
+Config param enable_gcp_step_deviation_metrics: True
+Config param enable_goodput_recording: False
+Config param enable_jax_profiler: False
+Config param enable_llm_inference_pool: False
+Config param enable_model_warmup: False
+Config param enable_nnx: False
+Config param enable_orbax_v1: False
+Config param enable_padding_causal_mask: True
+Config param enable_pathways_goodput: False
+Config param enable_prefix_caching: False
+Config param enable_single_controller: False
+Config param enable_single_replica_ckpt_restoring: False
+Config param enable_tensorboard: True
+Config param eval_data_columns: ['text']
+Config param eval_dataset_name: c4/en:3.0.1
+Config param eval_image_column: image
+Config param eval_interval: -1
+Config param eval_per_device_batch_size: 1.0
+Config param eval_split: validation
+Config param eval_steps: -1
+Config param expansion_factor_real_data: -1
+Config param expert_shard_attention_option: fsdp
+Config param final_logits_soft_cap: None
+Config param first_num_dense_layers: 0
+Config param float32_logits: False
+Config param float32_qk_product: False
+Config param force_unroll: False
+Config param freeze_vision_encoder_params: True
+Config param fused_mlp: False
+Config param fused_qkv: False
+Config param gcs_metrics: False
+Config param generate_slice: v5e-16
+Config param global_batch_size_to_eval_on: 8
+Config param global_batch_size_to_load: 8
+Config param global_batch_size_to_load_eval: 8
+Config param global_batch_size_to_train_on: 8
+Config param global_parameter_scale: 1
+Config param goodput_upload_interval_seconds: 30
+Config param gradient_accumulation_steps: 1
+Config param gradient_clipping_threshold: 1.0
+Config param grain_eval_files: 
+Config param grain_file_type: arrayrecord
+Config param grain_train_files: 
+Config param grain_worker_count: 1
+Config param grain_worker_count_eval: 1
+Config param hardware: tpu
+Config param head_dim: 128
+Config param heartbeat_reporting_interval_in_seconds: 5
+Config param hf_data_dir: 
+Config param hf_eval_files: 
+Config param hf_eval_split: 
+Config param hf_path: 
+Config param hf_train_files: 
+Config param hidden_size_for_vit: 1408
+Config param ici_autoregressive_parallelism: 1
+Config param ici_context_autoregressive_parallelism: 1
+Config param ici_context_parallelism: 1
+Config param ici_data_parallelism: 1
+Config param ici_expert_parallelism: 1
+Config param ici_fsdp_parallelism: -1
+Config param ici_fsdp_transpose_parallelism: 1
+Config param ici_parallelism: [1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+Config param ici_pipeline_parallelism: 1
+Config param ici_sequence_parallelism: 1
+Config param ici_tensor_parallelism: 1
+Config param ici_tensor_sequence_parallelism: 1
+Config param ici_tensor_transpose_parallelism: 1
+Config param image_path: 
+Config param image_placeholder: <|image|>
+Config param image_size_for_vit: 896
+Config param inference_benchmark_test: False
+Config param inference_metadata_file: 
+Config param inference_microbenchmark_log_file_path: 
+Config param inference_microbenchmark_loop_iters: 10
+Config param inference_microbenchmark_num_samples: [1, 2, 3, 4, 5]
+Config param inference_microbenchmark_prefill_lengths: 64,128,256,512,1024
+Config param inference_microbenchmark_stages: prefill,generate
+Config param inference_server: MaxtextInterleavedServer
+Config param inhomogeneous_layer_cycle_interval: 1
+Config param init_weights_seed: 0
+Config param input_data_sharding_logical_axes: ['activation_embed_and_logits_batch', 'activation_norm_length']
+Config param interleave_moe_layer_step: 1
+Config param intermediate_size_for_vit: 5632
+Config param jax_cache_dir: ~/jax_cache
+Config param jax_debug_log_modules: 
+Config param jax_distributed_initialization_timeout: 300
+Config param jax_profiler_port: 9999
+Config param key_proj: remat
+Config param kv_lora_rank: 512
+Config param kv_quant_axis: heads_and_dkv
+Config param kv_quant_dtype: int8
+Config param learning_rate: 3e-05
+Config param learning_rate_schedule_steps: 10
+Config param load_balance_loss_weight: 0.01
+Config param load_from_prefill_dir: False
+Config param load_full_state_path: 
+Config param load_parameters_path: gs://maxtext-model-checkpoints/llama3.1-8b/2025-01-23-19-04/scanned/0/items
+Config param local_checkpoint_directory: 
+Config param local_checkpoint_period: 0
+Config param local_rope_max_timescale: -1
+Config param log_config: True
+Config param log_period: 100
+Config param logical_axis_rules: (('activation_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_batch_no_exp', ('data', 'fsdp', 'fsdp_transpose')), ('activation_embed_and_logits_batch', ('data', 'stage', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_heads', ('tensor', 'tensor_transpose', 'sequence', 'tensor_sequence', 'autoregressive')), ('activation_kv_heads', ('tensor', 'tensor_transpose', 'sequence', 'tensor_sequence')), ('activation_length', ('sequence', 'context', 'expert')), ('activation_length', ('context', 'expert')), ('activation_length_no_exp', ('sequence', 'context')), ('activation_length_no_exp', ('context',)), ('activation_norm_length', ('tensor_sequence', 'context', 'sequence')), ('activation_q_length', ('context', 'expert')), ('activation_q_length_no_exp', ('context',)), ('prefill_activation_length', ('sequence', 'context')), ('prefill_activation_norm_length', ('tensor_sequence', 'context', 'sequence')), ('activation_kv_length', ()), ('activation_embed', ('tensor', 'tensor_transpose')), ('activation_mlp', ('tensor', 'tensor_transpose', 'tensor_sequence')), ('activation_kv', ('tensor', 'tensor_transpose', 'tensor_sequence')), ('activation_prefill_kv_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_kv_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('activation_kv_batch_no_exp', ('data', 'fsdp', 'fsdp_transpose')), ('activation_kv_head_dim', ('tensor', 'tensor_transpose', 'tensor_sequence')), ('activation_vocab', ('tensor', 'tensor_transpose', 'sequence', 'tensor_sequence')), ('activation_vocab', ('tensor', 'tensor_transpose')), ('activation_vocab', 'tensor_sequence'), ('activation_vocab', ('sequence', 'context')), ('activation_stage', 'stage'), ('activation_exp', ('expert',)), ('decode_batch', ('data', 'fsdp', 'fsdp_transpose', 'expert')), ('decode_length', ('sequence',)), ('mlp', ('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive')), ('vocab', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('heads', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('q_heads', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('kv_heads', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), ('embed', ('fsdp', 'fsdp_transpose', 'sequence', 'tensor_transpose', 'context', 'expert')), ('embed', ('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert')), ('embed', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), ('embed', ('fsdp', 'sequence', 'context', 'expert')), ('embed_no_exp', ('fsdp', 'fsdp_transpose', 'sequence', 'tensor_transpose', 'context')), ('embed_no_exp', ('fsdp', 'sequence', 'tensor_transpose', 'context')), ('embed_no_exp', ('fsdp', 'fsdp_transpose', 'sequence', 'context')), ('embed_no_exp', ('fsdp', 'sequence', 'context')), ('embed_tensor_transpose', ('tensor_transpose',)), ('q_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'tensor_transpose', 'expert')), ('q_lora', ('fsdp', 'sequence', 'context', 'tensor_transpose', 'expert')), ('q_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), ('q_lora', ('fsdp', 'sequence', 'context', 'expert')), ('kv_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'tensor_transpose', 'expert')), ('kv_lora', ('fsdp', 'sequence', 'context', 'tensor_transpose', 'expert')), ('kv_lora', ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), ('kv_lora', ('fsdp', 'sequence', 'context', 'expert')), ('norm', ('tensor', 'tensor_transpose')), ('layers', 'stage'), ('kv', ()), ('kv_head_dim', ()), ('cache_batch_prefill', ()), ('cache_batch', ()), ('cache_heads_none', ()), ('cache_heads', ('autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence')), ('cache_heads', ('autoregressive', 'tensor', 'tensor_sequence')), ('cache_kv', ()), ('cache_sequence', ()), ('exp', 'expert'), ('paged_kv_heads', ('tensor',)), ('num_pages', ()), ('tokens_per_page', ()), ('paged_kv_head_dim_size', ()))
+Config param logits_dot_in_fp32: False
+Config param logits_via_embedding: False
+Config param lora_input_adapters_path: 
+Config param matmul_precision: default
+Config param max_checkify: False
+Config param max_corpus_chars: 10000000
+Config param max_position_embeddings: 163840
+Config param max_prefill_predict_length: 4
+Config param max_target_length: 1024
+Config param megablox: True
+Config param mesh_axes: ['data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive']
+Config param metrics_dir: gs://dummy_output_dir/test-tunix-maxtext-llama3.1-8b/metrics/
+Config param metrics_file: 
+Config param micro_batch_size_to_eval_on: 8
+Config param micro_batch_size_to_train_on: 8
+Config param mla_naive_kvcache: True
+Config param mlp_activations: ['silu', 'linear']
+Config param mlp_dim: 14336
+Config param mlpwi: remat
+Config param mlpwi_0: remat
+Config param mlpwi_1: remat
+Config param mlpwo: remat
+Config param model_call_mode: 
+Config param model_fsdp_ag_once: False
+Config param model_name: llama3.1-8b
+Config param moe_mlp_dim: 7168
+Config param monitor_goodput: False
+Config param monitor_step_time_deviation: True
+Config param mscale: 1.0
+Config param mtp_eval_target_module: 0
+Config param mtp_loss_scaling_factor: 0.1
+Config param mtp_num_layers: 0
+Config param mu_dtype: bfloat16
+Config param multi_sampling: False
+Config param n_routing_groups: -1
+Config param nope_layer_interval: -1
+Config param norm_topk_prob: False
+Config param normalization_layer_epsilon: 1e-05
+Config param normalize_embedding_logits: True
+Config param num_attention_heads_for_vit: 16
+Config param num_channels_for_vit: 3
+Config param num_decoder_layers: 32
+Config param num_epoch: 1
+Config param num_experts: 1
+Config param num_experts_per_tok: 1
+Config param num_hidden_layers_for_vit: 34
+Config param num_kv_heads: 8
+Config param num_layers_per_pipeline_stage: 1
+Config param num_pipeline_microbatches: -1
+Config param num_pipeline_repeats: -1
+Config param num_query_heads: 32
+Config param num_slices: 1
+Config param opt_type: sgd
+Config param optimize_mesh_for_tpu_v6e: False
+Config param optimizer_memory_host_offload: False
+Config param original_max_position_embeddings: 4096
+Config param out_proj: remat
+Config param override_model_config: False
+Config param packing: True
+Config param pagedattn_head_dim_alignment: 128
+Config param pagedattn_max_pages_per_group: 32
+Config param pagedattn_num_pages: 64
+Config param pagedattn_pages_per_compute_block: 4
+Config param pagedattn_tokens_per_page: 32
+Config param param_scan_axis: 1
+Config param parameter_memory_host_offload: False
+Config param patch_size_for_vit: 14
+Config param per_device_batch_size: 1.0
+Config param pipeline_delay_activation_forwarding: False
+Config param pipeline_fsdp_ag_once: False
+Config param pipeline_parallel_layers: -1
+Config param pixel_shuffle_ratio_for_vit: 0.5
+Config param prefill_cache_axis_order: 1,2,0,3
+Config param prefill_cache_dir: 
+Config param prefill_chunk_size: 256
+Config param prefill_slice: v5e-16
+Config param prefix_caching_dram_byte: 100000000000
+Config param prefix_caching_hbm_byte: 10000000000
+Config param profile_cleanly: True
+Config param profile_periodically_period: -1
+Config param profiler: 
+Config param profiler_steps: 5
+Config param projector_dropout_for_vit: 0.0
+Config param projector_input_dim_for_vit: 4096
+Config param projector_output_dim_for_vit: 4096
+Config param prometheus_port: 0
+Config param prompt: I love to
+Config param q_lora_rank: 0
+Config param qk_nope_head_dim: 128
+Config param qk_rope_head_dim: 64
+Config param qkv_proj: remat
+Config param quant_cfg_path: 
+Config param quantization: 
+Config param quantization_calibration_method: absmax
+Config param quantization_local_shard_count: 1
+Config param quantize_kvcache: False
+Config param query_proj: remat
+Config param ragged_block_size: 256
+Config param record_internal_nn_metrics: 0
+Config param remat_policy: none
+Config param remat_policy_for_vit: minimal
+Config param replicate_quant_scale: False
+Config param replicator_backup_interval_minutes: 0
+Config param report_heartbeat_metric_for_gcp_monitoring: False
+Config param report_performance_metric_for_gcp_monitoring: False
+Config param reshape_q: False
+Config param return_log_prob: False
+Config param reuse_example_batch: 0
+Config param rope_factor: 40
+Config param rope_linear_scaling_factor: 1.0
+Config param rope_max_timescale: 500000
+Config param rope_min_timescale: 1
+Config param rope_theta_for_vit: 10000
+Config param rope_type: default
+Config param rope_use_scale: True
+Config param routed_bias: False
+Config param routed_scaling_factor: 1.0
+Config param routed_score_func: 
+Config param run_name: test-tunix-maxtext-llama3.1-8b
+Config param sa_block_kv: 512
+Config param sa_block_kv_compute: 512
+Config param sa_block_kv_dkv: 512
+Config param sa_block_kv_dkv_compute: 512
+Config param sa_block_kv_dq: 512
+Config param sa_block_q: 512
+Config param sa_block_q_dkv: 512
+Config param sa_block_q_dq: 512
+Config param sa_k_layout: HEAD_DIM_MINOR
+Config param sa_q_layout: HEAD_DIM_MINOR
+Config param sa_use_fused_bwd_kernel: False
+Config param sa_v_layout: HEAD_DIM_MINOR
+Config param save_checkpoint_on_completion: True
+Config param save_config_to_gcs: False
+Config param save_quantized_params_path: 
+Config param scan_layers: True
+Config param scan_layers_per_stage: False
+Config param scan_pipeline_iterations: True
+Config param set_remat_policy_on_layers_per_stage: False
+Config param set_remat_policy_on_pipeline_iterations: True
+Config param sft_train_on_completion_only: False
+Config param sharding_tolerance: 0.02
+Config param shardy: True
+Config param shared_experts: 1
+Config param skip_first_n_steps_for_profiler: 1
+Config param skip_jax_distributed_system: True
+Config param sliding_window_size: 0
+Config param source_checkpoint_layout: orbax
+Config param sparse_matmul: True
+Config param stack_prefill_result_cache: False
+Config param stack_trace_interval_seconds: 600
+Config param stack_trace_to_cloud: False
+Config param step_deviation_interval_seconds: 30
+Config param steps: 10
+Config param subslice_shape: 
+Config param target_eval_loss: 0.0
+Config param temperature_tuning: False
+Config param tensorboard_dir: gs://dummy_output_dir/test-tunix-maxtext-llama3.1-8b/tensorboard/
+Config param tile_activation_dim: 1024
+Config param tile_batch_seq: 512
+Config param tile_size_for_vit: 336
+Config param tile_weight_dim: 1024
+Config param tokenize_eval_data: True
+Config param tokenize_train_data: True
+Config param tokenizer_path: assets/tokenizer_llama3.tiktoken
+Config param tokenizer_type: tiktoken
+Config param topk_routing_group: -1
+Config param train_data_columns: ['text']
+Config param train_image_column: image
+Config param train_split: train
+Config param trainable_position_size: -1
+Config param upload_all_profiler_results: False
+Config param use_chat_template: False
+Config param use_chunked_prefill: False
+Config param use_dpo: False
+Config param use_iota_embed: False
+Config param use_multimodal: False
+Config param use_post_attn_norm: False
+Config param use_post_ffw_norm: False
+Config param use_qk_norm: False
+Config param use_qwix_quantization: False
+Config param use_ragged_attention: False
+Config param use_random_routing: False
+Config param use_replicator_service: False
+Config param use_sft: False
+Config param use_untrainable_positional_embedding: False
+Config param use_vertex_tensorboard: False
+Config param using_pipeline_parallelism: False
+Config param v_head_dim: 128
+Config param value_proj: remat
+Config param vertex_tensorboard_project: 
+Config param vertex_tensorboard_region: 
+Config param vision_output_dim_for_vit: 4096
+Config param vocab_size: 128256
+Config param warmup_steps_fraction: 0.1
+Config param weight_dtype: bfloat16
+Num_devices: 8, shape (1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+The abstract NNX state (all leaves are abstract arrays):
+State({
+  'decoder': {
+    'decoder_norm': {
+      'scale': Param( # 4,096 (8.2 KB)
+        value=ShapeDtypeStruct(shape=(4096,), dtype=bfloat16),
+        mesh=None,
+        sharding=('norm',),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )
+    },
+    'layers': {
+      'mlp': {
+        'wi_0': {
+          'kernel': Param( # 1,879,048,192 (3.8 GB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 14336), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'mlp'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'wi_1': {
+          'kernel': Param( # 1,879,048,192 (3.8 GB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 14336), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'mlp'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'wo': {
+          'kernel': Param( # 1,879,048,192 (3.8 GB)
+            value=ShapeDtypeStruct(shape=(14336, 32, 4096), dtype=bfloat16),
+            mesh=None,
+            sharding=('mlp', 'layers', 'embed'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        }
+      },
+      'post_self_attention_layer_norm': {
+        'scale': Param( # 131,072 (262.1 KB)
+          value=ShapeDtypeStruct(shape=(4096, 32), dtype=bfloat16),
+          mesh=None,
+          sharding=('norm', 'layers'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'pre_self_attention_layer_norm': {
+        'scale': Param( # 131,072 (262.1 KB)
+          value=ShapeDtypeStruct(shape=(4096, 32), dtype=bfloat16),
+          mesh=None,
+          sharding=('norm', 'layers'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'self_attention': {
+        'key': {
+          'kernel': Param( # 134,217,728 (268.4 MB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 8, 128), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'out': {
+          'kernel': Param( # 536,870,912 (1.1 GB)
+            value=ShapeDtypeStruct(shape=(32, 32, 128, 4096), dtype=bfloat16),
+            mesh=None,
+            sharding=('heads', 'layers', 'kv', 'embed'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'query': {
+          'kernel': Param( # 536,870,912 (1.1 GB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 32, 128), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'q_heads', 'kv'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'value': {
+          'kernel': Param( # 134,217,728 (268.4 MB)
+            value=ShapeDtypeStruct(shape=(4096, 32, 8, 128), dtype=bfloat16),
+            mesh=None,
+            sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        }
+      }
+    },
+    'logits_dense': {
+      'kernel': Param( # 525,336,576 (1.1 GB)
+        value=ShapeDtypeStruct(shape=(4096, 128256), dtype=bfloat16),
+        mesh=None,
+        sharding=('embed', 'vocab'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )
+    },
+    'to_nnx__rngs': {
+      'dropout': {
+        'count': RngCount( # 1 (4 B)
+          value=ShapeDtypeStruct(shape=(), dtype=uint32),
+          tag='dropout'
+        ),
+        'key': RngKey( # 1 (8 B)
+          value=ShapeDtypeStruct(shape=(), dtype=key<fry>),
+          tag='dropout'
+        )
+      },
+      'params': {
+        'count': RngCount( # 1 (4 B)
+          value=ShapeDtypeStruct(shape=(), dtype=uint32),
+          tag='params'
+        ),
+        'key': RngKey( # 1 (8 B)
+          value=ShapeDtypeStruct(shape=(), dtype=key<fry>),
+          tag='params'
+        )
+      }
+    }
+  },
+  'token_embedder': {
+    'embedding': Param( # 525,336,576 (1.1 GB)
+      value=ShapeDtypeStruct(shape=(128256, 4096), dtype=bfloat16),
+      sharding=('vocab', 'embed')
+    )
+  }
+})
+Num_devices: 8, shape (1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+TunixMaxTextLlama( # Param: 8,030,261,248 (16.1 GB), RngState: 4 (24 B), Total: 8,030,261,252 (16.1 GB)
+  base=Transformer( # Param: 8,030,261,248 (16.1 GB), RngState: 4 (24 B), Total: 8,030,261,252 (16.1 GB)
+    config=<MaxText.pyconfig.HyperParameters object at 0x7c117639e810>,
+    decoder=ToNNX( # Param: 7,504,924,672 (15.0 GB), RngState: 4 (24 B), Total: 7,504,924,676 (15.0 GB)
+      decoder_norm={'scale': Param( # 4,096 (8.2 KB)
+        value=Array(shape=(4096,), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('norm',),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )},
+      layers={'mlp': {'wi_0': {'kernel': Param( # 1,879,048,192 (3.8 GB)
+        value=Array(shape=(4096, 32, 14336), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'mlp'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'wi_1': {'kernel': Param( # 1,879,048,192 (3.8 GB)
+        value=Array(shape=(4096, 32, 14336), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'mlp'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'wo': {'kernel': Param( # 1,879,048,192 (3.8 GB)
+        value=Array(shape=(14336, 32, 4096), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('mlp', 'layers', 'embed'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}}, 'post_self_attention_layer_norm': {'scale': Param( # 131,072 (262.1 KB)
+        value=Array(shape=(4096, 32), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('norm', 'layers'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'pre_self_attention_layer_norm': {'scale': Param( # 131,072 (262.1 KB)
+        value=Array(shape=(4096, 32), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('norm', 'layers'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'self_attention': {'key': {'kernel': Param( # 134,217,728 (268.4 MB)
+        value=Array(shape=(4096, 32, 8, 128), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'out': {'kernel': Param( # 536,870,912 (1.1 GB)
+        value=Array(shape=(32, 32, 128, 4096), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('heads', 'layers', 'kv', 'embed'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'query': {'kernel': Param( # 536,870,912 (1.1 GB)
+        value=Array(shape=(4096, 32, 32, 128), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'q_heads', 'kv'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}, 'value': {'kernel': Param( # 134,217,728 (268.4 MB)
+        value=Array(shape=(4096, 32, 8, 128), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )}}},
+      logits_dense={'kernel': Param( # 525,336,576 (1.1 GB)
+        value=Array(shape=(4096, 128256), dtype=dtype(bfloat16)),
+        mesh=None,
+        sharding=('embed', 'vocab'),
+        sharding_rules=None,
+        linen_meta_type=LogicallyPartitioned
+      )},
+      to_nnx__module=Decoder(
+          # attributes
+          config = <MaxText.pyconfig.HyperParameters object at 0x7c117639e810>
+          mesh = Mesh(axis_sizes=(1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1), axis_names=('data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive'), axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto))
+          quant = None
+          model_mode = 'train'
+      ),
+      to_nnx__rngs=Rngs( # RngState: 4 (24 B)
+        dropout=RngStream( # RngState: 2 (12 B)
+          count=RngCount( # 1 (4 B)
+            value=Array(1, dtype=uint32),
+            tag='dropout'
+          ),
+          key=RngKey( # 1 (8 B)
+            value=Array((), dtype=key<fry>) overlaying:
+            [ 507451445 1853169794],
+            tag='dropout'
+          ),
+          tag='dropout'
+        ),
+        params=RngStream( # RngState: 2 (12 B)
+          count=RngCount( # 1 (4 B)
+            value=Array(1, dtype=uint32),
+            tag='params'
+          ),
+          key=RngKey( # 1 (8 B)
+            value=Array((), dtype=key<fry>) overlaying:
+            [ 928981903 3453687069],
+            tag='params'
+          ),
+          tag='params'
+        )
+      )
+    ),
+    mesh=Mesh(axis_sizes=(1, 1, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1), axis_names=('data', 'stage', 'fsdp', 'fsdp_transpose', 'sequence', 'context', 'context_autoregressive', 'tensor', 'tensor_transpose', 'tensor_sequence', 'expert', 'autoregressive'), axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)),
+    model_mode='train',
+    quant=None,
+    token_embedder=Embed( # Param: 525,336,576 (1.1 GB)
+      attend_dtype=dtype(bfloat16),
+      cast_input_dtype=None,
+      config=<MaxText.pyconfig.HyperParameters object at 0x7c117639e810>,
+      dtype=dtype(bfloat16),
+      embedding=Param( # 525,336,576 (1.1 GB)
+        value=Array(shape=(128256, 4096), dtype=dtype(bfloat16)),
+        sharding=('vocab', 'embed')
+      ),
+      num_embeddings=128256,
+      num_features=4096
+    ),
+    vision_encoder=None
+  ),
+  use_attention_mask=False,
+  to_hf_mappings=<function create_maxtext_to_vllm_mappings at 0x7c11773d9ee0>,
+  to_hf_transpose_keys=<function <lambda> at 0x7c2199158400>,
+  lora_to_hf_mappings=<function <lambda> at 0x7c228af1eac0>,
+  to_hf_hook_fns=<function <lambda> at 0x7c117537b9c0>
+)
+Model initialized successfully
+Model mesh shape: OrderedDict({'data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1})
+HBM usage after loading policy model:
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_0(process=0,(0,0,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_1(process=0,(1,0,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_2(process=0,(0,1,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_3(process=0,(1,1,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_4(process=0,(0,2,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_5(process=0,(1,2,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_6(process=0,(0,3,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_7(process=0,(1,3,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_0(process=0,(0,0,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_1(process=0,(1,0,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_2(process=0,(0,1,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_3(process=0,(1,1,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_4(process=0,(0,2,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_5(process=0,(1,2,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_6(process=0,(0,3,0,0))
+Using 3.7 GiB / 31.2 GiB (11.970408%) on TPU_7(process=0,(1,3,0,0))
+dummy_input.shape=(1, 1, 1024)
+Jitting train and eval step functions with mesh: Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto))
+#####optimizer_shapes=optimizer_shapes=State({
+  'opt_state': {
+    1: {
+      'count': OptArray(
+        value=()
+      )
+    }
+  },
+  'step': OptState(
+    value=()
+  )
+})
+##### original pspec=PartitionSpec()
+#####adjusted_pspec=PartitionSpec()
+##### original pspec=PartitionSpec()
+#####adjusted_pspec=PartitionSpec()
+Starting train step 0
+#####model_shardings=model_shardings=State({
+  'base': {
+    'decoder': {
+      'decoder_norm': {
+        'scale': Param(
+          value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose'),), memory_kind=device),
+          mesh=None,
+          sharding=('norm',),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'layers': {
+        'mlp': {
+          'wi_0': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert'), 'stage', ('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive')), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'mlp'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'wi_1': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert'), 'stage', ('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive')), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'mlp'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'wo': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive'), 'stage', ('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert')), memory_kind=device),
+              mesh=None,
+              sharding=('mlp', 'layers', 'embed'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          }
+        },
+        'post_self_attention_layer_norm': {
+          'scale': Param(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose'), 'stage'), memory_kind=device),
+            mesh=None,
+            sharding=('norm', 'layers'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'pre_self_attention_layer_norm': {
+          'scale': Param(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose'), 'stage'), memory_kind=device),
+            mesh=None,
+            sharding=('norm', 'layers'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'self_attention': {
+          'key': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), 'stage', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), None), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'out': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), 'stage', None, ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), memory_kind=device),
+              mesh=None,
+              sharding=('heads', 'layers', 'kv', 'embed'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'query': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), 'stage', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), None), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'q_heads', 'kv'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'value': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), 'stage', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), None), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          }
+        }
+      },
+      'logits_dense': {
+        'kernel': Param(
+          value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), memory_kind=device),
+          mesh=None,
+          sharding=('embed', 'vocab'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'to_nnx__rngs': {
+        'dropout': {
+          'count': RngCount(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='dropout'
+          ),
+          'key': RngKey(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='dropout'
+          )
+        },
+        'params': {
+          'count': RngCount(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='params'
+          ),
+          'key': RngKey(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='params'
+          )
+        }
+      }
+    },
+    'token_embedder': {
+      'embedding': Param(
+        value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), memory_kind=device),
+        sharding=('vocab', 'embed')
+      )
+    }
+  }
+})
+Sharding optimizer state with partition specs after adjust: State({
+  'opt_state': {
+    1: {
+      'count': OptArray(
+        value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+      )
+    }
+  },
+  'step': OptState(
+    value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+  )
+}) State({
+  'opt_state': {
+    1: {
+      'count': OptArray(
+        value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+      )
+    }
+  },
+  'step': OptState(
+    value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+  )
+})
+x.input_tokens.shape=(1, 1024)
+ input['positions'].shape=(1, 1024)
+ input['attention_mask'].shape=(1, 1024)
+model state x_shapes=State({
+  'base': {
+    'decoder': {
+      'decoder_norm': {
+        'scale': Param(
+          value=(4096,),
+          mesh=None,
+          sharding=('norm',),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'layers': {
+        'mlp': {
+          'wi_0': {
+            'kernel': Param(
+              value=(4096, 32, 14336),
+              mesh=None,
+              sharding=('embed', 'layers', 'mlp'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'wi_1': {
+            'kernel': Param(
+              value=(4096, 32, 14336),
+              mesh=None,
+              sharding=('embed', 'layers', 'mlp'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'wo': {
+            'kernel': Param(
+              value=(14336, 32, 4096),
+              mesh=None,
+              sharding=('mlp', 'layers', 'embed'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          }
+        },
+        'post_self_attention_layer_norm': {
+          'scale': Param(
+            value=(4096, 32),
+            mesh=None,
+            sharding=('norm', 'layers'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'pre_self_attention_layer_norm': {
+          'scale': Param(
+            value=(4096, 32),
+            mesh=None,
+            sharding=('norm', 'layers'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'self_attention': {
+          'key': {
+            'kernel': Param(
+              value=(4096, 32, 8, 128),
+              mesh=None,
+              sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'out': {
+            'kernel': Param(
+              value=(32, 32, 128, 4096),
+              mesh=None,
+              sharding=('heads', 'layers', 'kv', 'embed'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'query': {
+            'kernel': Param(
+              value=(4096, 32, 32, 128),
+              mesh=None,
+              sharding=('embed', 'layers', 'q_heads', 'kv'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'value': {
+            'kernel': Param(
+              value=(4096, 32, 8, 128),
+              mesh=None,
+              sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          }
+        }
+      },
+      'logits_dense': {
+        'kernel': Param(
+          value=(4096, 128256),
+          mesh=None,
+          sharding=('embed', 'vocab'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'to_nnx__rngs': {
+        'dropout': {
+          'count': RngCount(
+            value=(),
+            tag='dropout'
+          ),
+          'key': RngKey(
+            value=(),
+            tag='dropout'
+          )
+        },
+        'params': {
+          'count': RngCount(
+            value=(),
+            tag='params'
+          ),
+          'key': RngKey(
+            value=(),
+            tag='params'
+          )
+        }
+      }
+    },
+    'token_embedder': {
+      'embedding': Param(
+        value=(128256, 4096),
+        sharding=('vocab', 'embed')
+      )
+    }
+  }
+})
+optimizer state x_opt_shapes=State({
+  'opt_state': {
+    1: {
+      'count': OptArray(
+        value=()
+      )
+    }
+  },
+  'step': OptState(
+    value=()
+  )
+})
+###########loss=array(9.443279, dtype=float32), self._train_steps=1
+Starting train step 1
+#####model_shardings=model_shardings=State({
+  'base': {
+    'decoder': {
+      'decoder_norm': {
+        'scale': Param(
+          value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose'),), memory_kind=device),
+          mesh=None,
+          sharding=('norm',),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'layers': {
+        'mlp': {
+          'wi_0': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert'), 'stage', ('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive')), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'mlp'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'wi_1': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert'), 'stage', ('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive')), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'mlp'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'wo': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp_transpose', 'tensor', 'tensor_sequence', 'autoregressive'), 'stage', ('fsdp', 'sequence', 'tensor_transpose', 'context', 'expert')), memory_kind=device),
+              mesh=None,
+              sharding=('mlp', 'layers', 'embed'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          }
+        },
+        'post_self_attention_layer_norm': {
+          'scale': Param(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose'), 'stage'), memory_kind=device),
+            mesh=None,
+            sharding=('norm', 'layers'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'pre_self_attention_layer_norm': {
+          'scale': Param(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose'), 'stage'), memory_kind=device),
+            mesh=None,
+            sharding=('norm', 'layers'),
+            sharding_rules=None,
+            linen_meta_type=LogicallyPartitioned
+          )
+        },
+        'self_attention': {
+          'key': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), 'stage', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), None), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'out': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), 'stage', None, ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), memory_kind=device),
+              mesh=None,
+              sharding=('heads', 'layers', 'kv', 'embed'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'query': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), 'stage', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), None), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'q_heads', 'kv'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          },
+          'value': {
+            'kernel': Param(
+              value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), 'stage', ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), None), memory_kind=device),
+              mesh=None,
+              sharding=('embed', 'layers', 'kv_heads', 'kv_head_dim'),
+              sharding_rules=None,
+              linen_meta_type=LogicallyPartitioned
+            )
+          }
+        }
+      },
+      'logits_dense': {
+        'kernel': Param(
+          value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert'), ('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive')), memory_kind=device),
+          mesh=None,
+          sharding=('embed', 'vocab'),
+          sharding_rules=None,
+          linen_meta_type=LogicallyPartitioned
+        )
+      },
+      'to_nnx__rngs': {
+        'dropout': {
+          'count': RngCount(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='dropout'
+          ),
+          'key': RngKey(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='dropout'
+          )
+        },
+        'params': {
+          'count': RngCount(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='params'
+          ),
+          'key': RngKey(
+            value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device),
+            tag='params'
+          )
+        }
+      }
+    },
+    'token_embedder': {
+      'embedding': Param(
+        value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(('tensor', 'tensor_transpose', 'tensor_sequence', 'autoregressive'), ('fsdp', 'fsdp_transpose', 'sequence', 'context', 'expert')), memory_kind=device),
+        sharding=('vocab', 'embed')
+      )
+    }
+  }
+})
+Sharding optimizer state with partition specs after adjust: State({
+  'opt_state': {
+    1: {
+      'count': OptArray(
+        value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+      )
+    }
+  },
+  'step': OptState(
+    value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+  )
+}) State({
+  'opt_state': {
+    1: {
+      'count': OptArray(
+        value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+      )
+    }
+  },
+  'step': OptState(
+    value=NamedSharding(mesh=Mesh('data': 1, 'stage': 1, 'fsdp': 8, 'fsdp_transpose': 1, 'sequence': 1, 'context': 1, 'context_autoregressive': 1, 'tensor': 1, 'tensor_transpose': 1, 'tensor_sequence': 1, 'expert': 1, 'autoregressive': 1, axis_types=(Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto)), spec=PartitionSpec(), memory_kind=device)
+  )
+})
+###########loss=array(9.443279, dtype=float32), self._train_steps=2
+Starting train step 2
+###########loss=array(9.129922, dtype=float32), self._train_steps=3
+Starting train step 3
+###########loss=array(8.939785, dtype=float32), self._train_steps=4
+Starting train step 4
+Training dataset is exhausted. Stopping training.
+Waiting for an inflight computation to finish...
+An inflight computation finished.
+Waiting for an inflight computation to finish...
+An inflight computation finished.
+close trainer

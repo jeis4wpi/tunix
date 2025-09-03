@@ -63,4 +63,6 @@ class InflightThrottler:
     """Wait for all inflight computations to finish."""
     if self._inflight_queue:
       while not self._inflight_queue.empty():
+        print("Waiting for an inflight computation to finish...")
         self._inflight_queue.get().block_until_ready()
+        print("An inflight computation finished.")

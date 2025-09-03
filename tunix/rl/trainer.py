@@ -30,11 +30,13 @@ class Trainer(peft_trainer.PeftTrainer):
       model: nnx.Module,
       optimizer: optax.GradientTransformation,
       training_config: peft_trainer.TrainingConfig,
+      logical_axis_rules: Any | None = None,
   ):
     super().__init__(
         model,
         optimizer,
         training_config,
+        logical_axis_rules=logical_axis_rules,
     )
     self.rl_metrics_to_log = {}  # Metric name -> key in aux.
     self.tqdm_metrics_to_display = []
