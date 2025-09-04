@@ -28,10 +28,12 @@ from jax.experimental import multihost_utils
 
 
 def load_gemma3_model(mesh):
-  config = (gemma3_model_lib.Gemma3Config.gemma3_27b()
-           )  # pick corresponding config based on model version
+  config = (
+      gemma3_model_lib.Gemma3Config.gemma3_27b()
+  )  # pick corresponding config based on model version
   return config, gemma3_params_lib.create_model_from_checkpoint(
-      gemma3_params_lib.GEMMA3_27B_IT, config, mesh)
+      gemma3_params_lib.GEMMA3_27B_IT, config, mesh
+  )
 
 
 SUPPORTED_MODELS = {
@@ -43,10 +45,9 @@ SUPPORTED_MODELS = {
 }
 
 
-def get_top_k_tokens_scores(logits_tensor,
-                            tokenizer_instance,
-                            k=10,
-                            description=""):
+def get_top_k_tokens_scores(
+    logits_tensor, tokenizer_instance, k=10, description=""
+):
   """Get the top-k tokens and their scores from a given logits tensor."""
   print(f"\n--- {description} top {k} tokens ---")
   collected_tokens = []
@@ -56,16 +57,12 @@ def get_top_k_tokens_scores(logits_tensor,
     tok_id = topk_results.indices[i].item()
     score = topk_results.values[i].item()
     tok = tokenizer_instance.decode(tok_id)
-    collected_tokens.append({
-        "id": int(tok_id),
-        "token": tok.strip(),
-        "score": float(score)
-    })
-    tokens.append({
-        "id": int(tok_id),
-        "token": tok.strip(),
-        "score": float(score)
-    })
+    collected_tokens.append(
+        {"id": int(tok_id), "token": tok.strip(), "score": float(score)}
+    )
+    tokens.append(
+        {"id": int(tok_id), "token": tok.strip(), "score": float(score)}
+    )
 
   # Prepare data for logging
   table_str = f"| {'Token ID':<10} | {'Token':<20} | {'Score':<10} |\n"
@@ -78,12 +75,12 @@ def get_top_k_tokens_scores(logits_tensor,
 
 def compare_top_tokens(converted_tokens, golden_tokens):
   """
-    Compares two lists of top tokens and calculates similarity metrics.
+  Compares two lists of top tokens and calculates similarity metrics.
 
-    Args:
-        converted_tokens: top tokens from the converted model.
-        golden_tokens:  top tokens from the golden model.
-    """
+  Args:
+      converted_tokens: top tokens from the converted model.
+      golden_tokens:  top tokens from the golden model.
+  """
   # Extract the sets of token IDs for comparison
   converted_ids = {token["id"] for token in converted_tokens}
   golden_ids = {token["id"] for token in golden_tokens}
@@ -120,14 +117,14 @@ def compare_top_tokens(converted_tokens, golden_tokens):
 
 def check_kl_divergence(model_logits, golden_logits, atol=0.02):
   """
-    Calculates KL divergence D_KL(P_golden || Q_model) over a batch of sequences.
+  Calculates KL divergence D_KL(P_golden || Q_model) over a batch of sequences.
 
-    Args:
-        model_logits: Logits from the converted model (Batch, SeqLen, VocabSize).
-        golden_logits: Logits from the golden model (Batch, SeqLen, VocabSize).
-        token_size: The number of vocabulary entries to consider for the comparison.
-                    (Effectively vocab_size_to_compare).
-    """
+  Args:
+      model_logits: Logits from the converted model (Batch, SeqLen, VocabSize).
+      golden_logits: Logits from the golden model (Batch, SeqLen, VocabSize).
+      token_size: The number of vocabulary entries to consider for the comparison.
+                  (Effectively vocab_size_to_compare).
+  """
   # 1. Select the relevant vocabulary slice from the logits.
   token_size = min(model_logits.shape[1], golden_logits.shape[1])
   model_logits_sliced = model_logits[..., :token_size]
@@ -152,8 +149,10 @@ def check_kl_divergence(model_logits, golden_logits, atol=0.02):
       log_target=False,
   )
 
-  print("\nAverage KL divergence per token (D_KL(P_golden || Q_model)): "
-        f"{kl_div_value.item():.6f}")
+  print(
+      "\nAverage KL divergence per token (D_KL(P_golden || Q_model)): "
+      f"{kl_div_value.item():.6f}"
+  )
 
   # To find the max KL divergence for any single token in the set
   # use reduction='none'.
@@ -162,11 +161,15 @@ def check_kl_divergence(model_logits, golden_logits, atol=0.02):
       target=golden_probabilities,
       reduction="none",
       log_target=False,
-  ).sum(dim=-1)  # Sum over the vocab dim to get a single KL value per token
+  ).sum(
+      dim=-1
+  )  # Sum over the vocab dim to get a single KL value per token
 
   max_kl_div = kl_divs_per_token.max()
-  print(f"\nMax KL divergence for a single token in the set: "
-        f"{max_kl_div.item():.6f}")
+  print(
+      f"\nMax KL divergence for a single token in the set: "
+      f"{max_kl_div.item():.6f}"
+  )
 
   assert (
       max_kl_div < atol
@@ -177,16 +180,21 @@ def get_data(golden_data, golden_data_index, config):
   """Get the golden data for the test indexed at golden_data_index"""
 
   print(f"Comparing forward pass for golden data index = {golden_data_index}")
-  print("config.global_batch_size_to_train_on="
-        f"{config.global_batch_size_to_train_on}")
+  print(
+      "config.global_batch_size_to_train_on="
+      f"{config.global_batch_size_to_train_on}"
+  )
 
-  original_ids = np.asarray(golden_data[golden_data_index]["tokens"],
-                            dtype=np.int32)
+  original_ids = np.asarray(
+      golden_data[golden_data_index]["tokens"], dtype=np.int32
+  )
   seq_len = len(original_ids)
 
   if seq_len > config.max_target_length:
-    raise ValueError(f"Golden data sequence length ({seq_len}) is greater than "
-                     f"max_target_length ({config.max_target_length})")
+    raise ValueError(
+        f"Golden data sequence length ({seq_len}) is greater than "
+        f"max_target_length ({config.max_target_length})"
+    )
 
   s = (config.global_batch_size_to_train_on, config.max_target_length)
 
@@ -198,28 +206,37 @@ def get_data(golden_data, golden_data_index, config):
       constant_values=0,
   )
   ids = np.stack(
-      [padded_ids for _ in range(config.global_batch_size_to_train_on)])
+      [padded_ids for _ in range(config.global_batch_size_to_train_on)]
+  )
 
-  logits = np.asarray(golden_data[golden_data_index]["logits"],
-                      dtype=np.float32)
-  print(f" prompt=\"{golden_data[golden_data_index]['prompt']}\" raw "
-        f"ids={original_ids}, logits.shape = {logits.shape}")
+  logits = np.asarray(
+      golden_data[golden_data_index]["logits"], dtype=np.float32
+  )
+  print(
+      f" prompt=\"{golden_data[golden_data_index]['prompt']}\" raw "
+      f"ids={original_ids}, logits.shape = {logits.shape}"
+  )
 
   decoder_segment_ids = np.zeros(s, dtype=np.int32)
   decoder_segment_ids[:, :seq_len] = 1
-  decoder_positions = np.stack([
-      np.arange(config.max_target_length, dtype=np.int32)
-      for _ in range(config.global_batch_size_to_train_on)
-  ])
+  decoder_positions = np.stack(
+      [
+          np.arange(config.max_target_length, dtype=np.int32)
+          for _ in range(config.global_batch_size_to_train_on)
+      ]
+  )
 
-  print(f"ids={ids}, decoder_segment_ids = {decoder_segment_ids}, "
-        f"decoder_positions= {decoder_positions}")
+  print(
+      f"ids={ids}, decoder_segment_ids = {decoder_segment_ids}, "
+      f"decoder_positions= {decoder_positions}"
+  )
 
   return ids, decoder_segment_ids, decoder_positions, logits, seq_len
 
 
-def convert_jax_weight_to_torch(weight: "jax.Array",
-                                dtype: str | None = None) -> torch.Tensor:
+def convert_jax_weight_to_torch(
+    weight: "jax.Array", dtype: str | None = None
+) -> torch.Tensor:
   expected_dtype = str(weight.dtype) if dtype is None else dtype
   expected_shape = weight.shape
   weight = multihost_utils.process_allgather(weight)
@@ -234,10 +251,12 @@ def main(test_args):
   print(f"Running on devices: {devices}")
   mesh = mesh = jax.make_mesh((1, len(devices)), ("fsdp", "tp"))
   hf_name, tunix_model_loader, tunix_tokenizer_loader = SUPPORTED_MODELS[
-      test_args.model_name]
+      test_args.model_name
+  ]
 
-  hf_model = AutoModelForCausalLM.from_pretrained(hf_name,
-                                                  torch_dtype=torch.bfloat16)
+  hf_model = AutoModelForCausalLM.from_pretrained(
+      hf_name, torch_dtype=torch.bfloat16
+  )
   tokenizer = AutoTokenizer.from_pretrained(hf_name)
 
   config, tunix_model = tunix_model_loader(mesh)
@@ -252,8 +271,10 @@ def main(test_args):
           head_dim=config.head_dim,
       ),
   )
-  print(f"Tokenizer vocab size: {tokenizer.vocab_size} vs "
-        f"{tunix_tokenizer.vocab_size()}")
+  print(
+      f"Tokenizer vocab size: {tokenizer.vocab_size} vs "
+      f"{tunix_tokenizer.vocab_size()}"
+  )
   prompts = ["I love to", "Today is a", "What is the"]
   for input_text in prompts:
     print(f"\n--- Prompt: {input_text} ---")
@@ -286,20 +307,23 @@ def main(test_args):
 
     # --- Compare logits for the last token prediction ---
     hf_last_token_logits = hf_logits_torch[-1, :]
-    tunix_last_token_logits = (tunix_logits_torch[-1, :]
-                              )  # Tunix output already sliced to actual_seq_len
+    tunix_last_token_logits = tunix_logits_torch[
+        -1, :
+    ]  # Tunix output already sliced to actual_seq_len
 
-    tokens_Tunix = get_top_k_tokens_scores(tunix_last_token_logits,
-                                           tokenizer,
-                                           k=10,
-                                           description="Tunix model")
+    tokens_Tunix = get_top_k_tokens_scores(
+        tunix_last_token_logits, tokenizer, k=10, description="Tunix model"
+    )
     tokens_hf = get_top_k_tokens_scores(
-        hf_last_token_logits, tokenizer, k=10, description="HF model")
+        hf_last_token_logits, tokenizer, k=10, description="HF model"
+    )
     compare_top_tokens(converted_tokens=tokens_Tunix, golden_tokens=tokens_hf)
 
     # --- Compare all logits in the sequence (for the first batch item) ---
     # Unsqueeze to add batch dimension for check_kl_divergence: [1, seq, vocab]
-    check_kl_divergence(tunix_logits_torch, hf_logits_torch, atol=test_args.max_kl_div)
+    check_kl_divergence(
+        tunix_logits_torch, hf_logits_torch, atol=test_args.max_kl_div
+    )
 
 
 if __name__ == "__main__":
@@ -307,18 +331,16 @@ if __name__ == "__main__":
   os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"  # Suppress TensorFlow logging
 
   parser = argparse.ArgumentParser()
-  parser.add_argument("--model_name",
-                      type=str,
-                      required=True,
-                      help="Name of the model to test.")
+  parser.add_argument(
+      "--model_name", type=str, required=True, help="Name of the model to test."
+  )
   parser.add_argument("--atol", type=float, required=False, default=0.1)
   parser.add_argument("--rtol", type=float, required=False, default=0.1)
   parser.add_argument("--token_size", type=int, required=False)
   parser.add_argument("--max_kl_div", type=float, required=False, default=0.015)
-  parser.add_argument("--max_target_length",
-                      type=int,
-                      required=False,
-                      default=1024)
+  parser.add_argument(
+      "--max_target_length", type=int, required=False, default=1024
+  )
   test_args, _ = parser.parse_known_args()
 
   assert (
