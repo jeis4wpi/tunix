@@ -200,10 +200,10 @@ class PeftTrainer:
     self.config = training_config
     self._lora_enabled = is_lora_enabled(self.model)
  
-    # if training_config.gradient_accumulation_steps is not None:
-    #   optimizer = optax.MultiSteps(
-    #       optimizer, training_config.gradient_accumulation_steps
-    #   )
+    if training_config.gradient_accumulation_steps is not None:
+      optimizer = optax.MultiSteps(
+          optimizer, training_config.gradient_accumulation_steps
+      )
     
     if self._lora_enabled:
       self.optimizer = nnx.Optimizer(self.model, optimizer, wrt=nnx.LoRAParam)
@@ -322,7 +322,7 @@ class PeftTrainer:
       inputs: The training input.
 
     Returns:
-      The loss, auxiliary data and learning rate if has_aux is True, otherwise the loss and learning rate.
+      The loss and auxiliary data if has_aux is True, otherwise the loss.
     """
     inputs = self.gen_model_input_fn(inputs)
 
@@ -332,14 +332,12 @@ class PeftTrainer:
         has_aux=self._has_aux,
     )
     out, grads = grad_fn(model, **inputs)
-    optimizer.update(grads)
-    lr = self._try_get_learning_rate()
-  
+    optimizer.update(model, grads)
     if self._has_aux:
       loss, aux = out
-      return loss, aux, lr
+      return loss, aux
     else:
-      return out, None, lr
+      return out, None
 
   def _eval_step(
       self, model: nnx.Module, inputs: Any
@@ -629,7 +627,7 @@ class PeftTrainer:
           if self.training_hooks:
             self.training_hooks.on_train_step_start(self)
 
-          train_loss, aux, lr = train_step(
+          train_loss, aux = train_step(
               self.model, self.optimizer, train_example
           )
 

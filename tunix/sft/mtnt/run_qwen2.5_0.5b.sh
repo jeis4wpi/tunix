@@ -15,23 +15,24 @@
 
 set -x # Enable xtrace
 
-# pip install -q git+https://github.com/google/qwix
-# pip install -q datasets
-# pip install -q tensorflow
-# ckpt_dir="google/gemma/flax/2b" \
+# not tested 
 
 python3 -m tunix.sft.peft_main \
   base_config.yaml \
-  model_name="gemma-2b" \
-  ckpt_dir="google/gemma/flax/2b" \
-  ckpt_source="kaggle" \
-  dataset_name="mtnt/en-fr"
-  # optimizer="adamw" \
-  # learning_rate=1e-3 \
-  # training_config.eval_every_n_steps=20 \
-  # training_config.max_steps=100 \
-  # training_config.metrics_logging_options.log_dir="/tmp/tensorboard/full" \
-  # training_config.metrics_logging_options.flush_every_n_steps=20 
-  
-
-
+  model_name="qwen2.5-0.5b" \
+  ckpt_dir="Qwen/Qwen2.5-0.5B" \
+  tokenizer_path="Qwen/Qwen2.5-0.5B"\
+  ckpt_source="huggingface" \
+  hf_cp_base_model_directory="/tmp/models" \
+  dataset_name="mtnt/en-fr" \
+  optimizer="adamw" \
+  learning_rate=1e-5 \
+  max_target_length=1024 \
+  training_config.eval_every_n_steps=20 \
+  training_config.max_steps=100 \
+  training_config.metrics_logging_options.log_dir="/tmp/tensorboard/full" \
+  training_config.metrics_logging_options.flush_every_n_steps=20 \
+  lora_config={} \
+  mesh.shape="(2,2)" \
+  mesh.axis_names="('fsdp','tp')" \
+  rng_seed=0

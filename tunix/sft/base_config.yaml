@@ -16,11 +16,11 @@
 model_name: "llama3.1-8b"
 
 # Replace it with your own model checkpoint directory.
-# GCS bucket. For kaggle,"google/gemma/flax/2b" for gemma 2b.
 ckpt_dir: "meta-llama/Llama-3.1-8B"
-# change source accordingly. Example: "kaggle" | "hf" | None
-# Currently, kaggle only support gemma 2b, gemma 7b,  hf only supports llama3.1. Non default 
+# change source accordingly. Example: "kaggle" | "huggingface" | "gcs" 
 ckpt_source: "huggingface"
+
+tokenizer_path: ""
 
 # For Kaggle login
 # If download checkpoint from kaggle, specify your kaggle credentials in envrionment variable starts with prefix `T_`
@@ -33,13 +33,19 @@ hf_token: None
 # for model downloaded from huggingface, copy model to directory.
 hf_cp_base_model_directory: "/tmp/models"
 
+# Integer seed to create `nnx.Rngs` to mangage the random state.
+rng_seed: 0
+
 visualize_model: false
 
 
 intermediate_ckpt_dir: "/tmp/intermediate_ckpt/"
 
 # model mesh
-mesh: [[1, 8], ["fsdp", "tp"]]
+mesh:
+  shape: [2,2]
+  axis: ["fsdp", "tp"]
+  
 
 # data
 dataset_name: "Helsinki-NLP/opus-100"
@@ -48,10 +54,10 @@ max_target_length: 256
 
 # LoRA config
 lora_config:
-  # rank: 16
-  # alpha: 2.0
-  # weight_qtype: "nf4"
-  # tile_size: 256
+  rank: 16
+  alpha: 2.0
+  weight_qtype: "nf4"
+  tile_size: 256
 
 # Train
 num_train_epochs: 1

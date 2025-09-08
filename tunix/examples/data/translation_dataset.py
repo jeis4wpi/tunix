@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Data loading and preprocessing."""
-
+import os
 from collections.abc import Iterable
 from typing import Any, Dict, List 
 
@@ -22,9 +22,10 @@ from etils import epath
 from grain import python as grain
 import numpy as np
 import tensorflow_datasets as tfds
+from transformers import AutoTokenizer
 import transformers
 from tunix.sft.peft_trainer import TrainingInput  # pylint: disable=g-importing-member
-
+from tunix.generate.tokenizer_adapter import TokenizerAdapter
 import sentencepiece as spm
 
 INPUT_TEMPLATE = {
@@ -37,7 +38,46 @@ INPUT_TEMPLATE_IT = {
     "suffix": "\n<end_of_turn>\n<start_of_turn>model\n",
 }
 
+class HFTokenizer(TokenizerAdapter):
+  
+  def __init__(self, tokenizer_path: str, add_bos: bool, add_eos: bool, hf_access_token: str):
+    hf_tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, add_bos, add_eos, hf_access_token)
+    super().__init__(hf_tokenizer)
+    
+    
+  def tokenize(
+      self,
+      example: str,
+      prefix: str = "",
+      suffix: str = "",
+      add_eos: bool = True,
+  ) -> np.ndarray:
+    """The tokenization function.
 
+    Args:
+      example: Input string to tokenize.
+      prefix:  Prefix to add to the input string.
+      suffix:  Suffix to add to the input string.
+      add_eos: If True, add an "end of sentence" token at the end of the output
+        sequence.
+
+    Returns:
+      Tokens corresponding to the input string.
+    """
+    int_list = [self.bos_id()]
+    int_list.extend(self.encode(prefix + example + suffix))
+    if add_eos:
+      int_list.append(self.eos_id())
+
+    return np.array(int_list, dtype=np.int32)
+  
+  # def pad_id(self):
+  #   return self.tokenizer.pad_token_id
+  # def bos_id(self):
+  #   return self.tokenizer.bos_token_id
+  # def eos_id(self):
+  #   return self.tokenizer.eos_token_id
+    
 class GemmaTokenizer(spm.SentencePieceProcessor):
   """Tokenizing and encoding/decoding text using the Sentencepiece tokenizer."""
 
@@ -204,7 +244,7 @@ def _build_data_loader(
       ),
       operations=[
           _Tokenize(tokenizer, input_template),
-          _BuildTrainInput(max_seq_len, _get_pad_id(tokenizer)),
+          _BuildTrainInput(max_seq_len, tokenizer.pad_id()),
           _FilterOverlength(max_seq_len),
           grain.Batch(batch_size=batch_size, drop_remainder=True),
       ],

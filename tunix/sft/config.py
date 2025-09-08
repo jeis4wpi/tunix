@@ -13,6 +13,7 @@
 # limitations under the License.
 """Config and CLI launched interface."""
 
+import ast
 import collections
 import os
 import pathlib
@@ -96,16 +97,16 @@ class HyperParameters:
     ckpt_source = raw_keys.get("ckpt_source")
     intermediate_ckpt = raw_keys.get("intermediate_ckpt_dir")
 
-    if ckpt_source not in ["kaggle", "huggingface", None]:
+    if ckpt_source not in ["kaggle", "huggingface", "gcs", None]:
       raise ValueError(
           f"Invalid ckpt_source: {ckpt_source}. Must be 'kaggle',"
-          " 'huggingface', or None."
+          " 'huggingface', 'gcs' or None."
       )
 
     if ckpt_source in ["kaggle", "huggingface"] and not intermediate_ckpt:
       raise ValueError(
           "intermediate_ckpt must be specified when ckpt_source is 'kaggle' or"
-          " 'huggingface'."
+          " 'huggingface'"
       )
 
   def _create_optimizer(self, raw_keys):
@@ -122,26 +123,73 @@ class HyperParameters:
     self.optimizer = _OPTIMIZER_MAP[optimizer_name](learning_rate)
 
   def _create_mesh(self, raw_keys):
-    """Validate and create the mesh configuration."""
-    mesh = raw_keys.get("mesh")
+    """Validate and extract mesh configuration from a dictionary.
 
-    if len(mesh) != 2:
-      raise ValueError(
-          "The 'mesh' must be of length 2, containing axis shapes and"
-          " axis names."
-      )
 
-    axis_shapes, axis_names = mesh
+    Expects raw_keys to contain a 'mesh' key, which is a dictionary
+    with 'shape' and 'axis_names' keys.
+
+    Args:
+      raw_keys: A dictionary containing the raw configuration.
+      self: Instance reference (if this method is part of a class).
+
+    Returns:
+      A tuple containing (axis_shapes, axis_names), both as tuples.
+
+    Raises:
+      ValueError: If the mesh configuration is missing, malformed, or invalid.
+    """
+
+    mesh_config = raw_keys.get("mesh")
+    if not mesh_config:
+        raise ValueError("Missing 'mesh' configuration in raw_keys.")
+
+    if not isinstance(mesh_config, collections.abc.Mapping):
+        raise ValueError(
+            f"The 'mesh' configuration must be a dictionary-like object, got {type(mesh_config)}."
+        )
+    
+   
+    axis_shapes = ast.literal_eval(mesh_config.get("shape"))
+    if axis_shapes is None:
+        raise ValueError("Missing 'shape' key in 'mesh' configuration.")
+
+    axis_names = ast.literal_eval(mesh_config.get("axis_names"))
+    if axis_names is None:
+        raise ValueError("Missing 'axis_names' key in 'mesh' configuration.")
+
+    # Validate axis_shapes
+    if not isinstance(axis_shapes, (list, tuple)):
+        raise ValueError(
+            f"'mesh.shape' must be a list or tuple, got {type(axis_shapes)}."
+        )
+    if not axis_shapes:
+        raise ValueError("'mesh.shape' cannot be empty.")
     if not all(isinstance(x, int) for x in axis_shapes):
-      raise ValueError("All elements in axis_shapes must be integers.")
-    if not all(isinstance(x, str) for x in axis_names):
-      raise ValueError("All elements in axis_names must be strings.")
+        raise ValueError(
+            f"All elements in mesh.shape must be integers, got {axis_shapes}."
+        )
 
+    # Validate axis_names
+    if not isinstance(axis_names, (list, tuple)):
+        raise ValueError(
+            f"'mesh.axis_names' must be a list or tuple, got {type(axis_names)}."
+        )
+    if not all(isinstance(x, str) for x in axis_names):
+        raise ValueError(
+            f"All elements in mesh.axis_names must be strings, got {axis_names}."
+        )
+
+    # Validate lengths match
     if len(axis_shapes) != len(axis_names):
-      raise ValueError("axis_shapes and axis_names must have the same length.")
+        raise ValueError(
+            f"mesh.shape {axis_shapes} and mesh.axis_names {axis_names} "
+            "must have the same length."
+        )
 
     self.mesh = (tuple(axis_shapes), tuple(axis_names))
 
+ 
   def _validate_training_config_and_assign(self, raw_keys):
     """Validate the complex configuration. Raise ValueError if invalid."""
     training_config = raw_keys["training_config"]

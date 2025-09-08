@@ -30,16 +30,22 @@ from orbax import checkpoint as ocp
 import qwix
 import optax
 import transformers
-from tunix.models.gemma import data as data_lib
+from tunix.examples.data import translation_dataset as data_lib
 from tunix.models.gemma import gemma as gemma_lib
 from tunix.models.gemma import params as gemma_params_lib
 from tunix.models.gemma3 import model as gemma3_lib
+from tunix.models.gemma3 import params as gemma3_params_lib
 from tunix.models.llama3 import model as llama3_lib
 from tunix.models.llama3 import params as llama3_params_lib
 from tunix.models.qwen2 import model as qwen2_lib
+from tunix.models.qwen2 import params as qwen2_params_lib
 from tunix.models.qwen3 import model as qwen3_lib
 from tunix.sft import config
 from tunix.sft import peft_trainer
+from tunix.rl import utils 
+import importlib
+import re
+from typing import Any
 
 # Map prefixes to the target object containing the methods.
 CONFIG_MAP = {
@@ -52,7 +58,62 @@ CONFIG_MAP = {
     'qwen3': qwen3_lib.ModelConfig,
 }
 
+BASE_MODULE_PATH = "tunix.models"
 
+def get_model_module(model_name: str) -> Any:
+    """Dynamically imports the parameter module based on the model name."""
+    # Extract the base model type (e.g., "qwen2", "llama3")
+    match = re.match(r"^[a-zA-Z0-9]+", model_name)
+    if not match:
+        raise ValueError(f"Invalid model name format: {model_name}")
+    model_type = match.group(0)
+
+    try:
+        # Construct the full module path, e.g., google3.path.to.your.models.qwen2.params
+        module_path = f"{BASE_MODULE_PATH}.{model_type}.params"
+        print(f"Attempting to import: {module_path}")
+        model_module = importlib.import_module(module_path)
+        return model_module
+    except ImportError:
+        raise ImportError(
+            f"Could not import module for model type: {model_type} "
+            f"at path: {module_path}. Please check BASE_MODULE_PATH "
+            f"and ensure the module exists and is a dependency."
+        )
+
+def create_model_dynamically(model_name: str, file_dir: str, config: Any, mesh: Any) -> Any:
+    """
+    Dynamically imports the correct module and calls create_model_from_safe_tensors
+    based on the model_name.
+
+    Args:
+        model_name: The name of the model (e.g., "qwen2.5-0.5b", "llama3.2-3b").
+        file_dir: Directory containing the safe tensors.
+        config: Model configuration object.
+        mesh: Mesh object for device layout.
+
+    Returns:
+        The result of the create_model_from_safe_tensors call.
+
+    Raises:
+        ValueError: If the model_name is invalid.
+        ImportError: If the required model module cannot be found.
+        AttributeError: If create_model_from_safe_tensors is not in the module.
+    """
+    model_module = get_model_module(model_name)
+
+    try:
+        create_fn = getattr(model_module, "create_model_from_safe_tensors")
+    except AttributeError:
+        raise AttributeError(
+            f"'create_model_from_safe_tensors' not found in module "
+            f"{model_module.__name__} for model {model_name}"
+        )
+
+    print(f"Calling {model_module.__name__}.create_model_from_safe_tensors")
+    return create_fn(file_dir=file_dir, config=config, mesh=mesh)
+
+  
 def obtain_model_config(model_name: str):
   """Dynamically calls a configuration function based on the model_string.
 
@@ -88,7 +149,6 @@ def obtain_model_config(model_name: str):
     raise ValueError(f'Unsupported model string prefix for: {model_name}')
 
   logging.info('Routing %s using prefix %s', model_name, matched_prefix)
-
   function_name = model_name.replace('-', '_').replace('.', '_')
 
   if not hasattr(target_obj, function_name):
@@ -109,13 +169,12 @@ def obtain_model_config(model_name: str):
   return method_to_call()
 
 
-def get_base_model(hyperparms: config.HyperParameters):
+def get_base_model(hyperparms: config.HyperParameters, mesh):
   model_config = obtain_model_config(hyperparms.config['model_name'])
-  mesh = jax.make_mesh(*hyperparms.mesh)
-  abs_gemma: nnx.Module = nnx.eval_shape(
-      lambda: gemma_lib.Transformer(model_config, rngs=nnx.Rngs(params=0))
+  abs_model: nnx.Module = nnx.eval_shape(
+      lambda: gemma_lib.Transformer(model_config, rngs=nnx.Rngs(hyperparms.config['rng_seed']))
   )
-  abs_state = nnx.state(abs_gemma)
+  abs_state = nnx.state(abs_model)
   abs_state = jax.tree.map(
       lambda a, s: jax.ShapeDtypeStruct(a.shape, jnp.bfloat16, sharding=s),
       abs_state,
@@ -127,20 +186,37 @@ def get_base_model(hyperparms: config.HyperParameters):
       target=abs_state,
   )
 
-  graph_def, _ = nnx.split(abs_gemma)
-  gemma = nnx.merge(graph_def, restored_params)
-  return gemma, mesh
+  graph_def, _ = nnx.split(abs_model)
+  model = nnx.merge(graph_def, restored_params)
+  return model
 
 
 def _apply_lora_to_model(base_model, mesh, lora_config):
   """Apply Lora to the base model if given lora config."""
-  lora_provider = qwix.LoraProvider(
-      module_path='.*q_einsum|.*kv_einsum|.*gate_proj|.*down_proj|.*up_proj',
-      rank=lora_config['rank'],
-      alpha=lora_config['alpha'],
-      weight_qtype=lora_config['weight_qtype'],
-      tile_size=lora_config['tile_size'],
-  )
+  logging.info("lora_config %r",lora_config)
+  # Basic keyword arguments for LoraProvider
+  lora_kwargs = {
+      'module_path': '.*q_einsum|.*kv_einsum|.*gate_proj|.*down_proj|.*up_proj',
+      'rank': lora_config['rank'],
+      'alpha': lora_config['alpha'],
+  }
+  has_weight_qtype = 'weight_qtype' in lora_config
+  has_tile_size = 'tile_size' in lora_config
+
+  if has_weight_qtype and has_tile_size:
+    lora_kwargs['weight_qtype'] = lora_config['weight_qtype']
+    lora_kwargs['tile_size'] = lora_config['tile_size']
+    logging.info("Qlora is applied")
+  else:
+    logging.info("Lora is applied")
+
+  try:
+    lora_provider = qwix.LoraProvider(**lora_kwargs)
+  except TypeError as e:
+    logging.error(f"Error initializing qwix.LoraProvider: {e}. Kwargs: {lora_kwargs}")
+    # Depending on desired behavior, you might re-raise or return base_model
+    raise
+
   model_input = base_model.get_model_input()
   lora_model = qwix.apply_lora_to_model(
       base_model, lora_provider, **model_input
@@ -187,7 +263,7 @@ def _hf_pipeline(hyperparms: config.HyperParameters):
 
 
 def _gemma_conversion(
-    hyperparms: config.HyperParameters, gemma: nnx.Module, params
+    hyperparms: config.HyperParameters, gemma: nnx.Module, params, mesh
 ):
   """Convert the Gemma model to NNX format."""
   checkpointer = ocp.StandardCheckpointer()
@@ -205,14 +281,13 @@ def _gemma_conversion(
   gc.collect()
 
   # Reload the model
-  gemma, mesh = get_base_model(hyperparms)
-  return gemma, mesh
-
+  gemma = get_base_model(hyperparms, mesh)
+  return gemma
 
 def _is_gemma(model_name: str):
   # Returns True if model starts with gemma
   if model_name.startswith('gemma'):
-    if model_name.startswith(('gemma2', 'gemma3')):
+    if model_name.startswith(('gemma2')):
       return False
     return True
   return False
@@ -253,8 +328,6 @@ def _validate_current_workflow(model_name: str, ckpt_source: str):
 
 def run_peft_trainer(hyperparms: config.HyperParameters):
   """Run the PEFT trainer."""
-  # jax.config.update('jax_debug_nans', True)
-
   model: nnx.Module | None = None
   mesh: jax.sharding.Mesh | None = None
   tokenizer: Any | None = None
@@ -263,54 +336,56 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
   model_name = hyperparms.config['model_name']
   ckpt_source = hyperparms.config['ckpt_source']
 
-  # Currently, we only support limited workflow.
-  _validate_current_workflow(model_name, ckpt_source)
-
+  # # Currently, we only support limited workflow.
+  # _validate_current_workflow(model_name, ckpt_source)
+  mesh = jax.make_mesh(*hyperparms.mesh)
   if _is_gemma(model_name):
     if ckpt_source == 'kaggle':
       ckpt_path = _kaggle_pipeline(hyperparms)
     else:
       ckpt_path = hyperparms.config['ckpt_dir']
-
-    model_version = model_name.split('-')[1]
-    # Only gemma is verified, block other workflow for now.
-    params = gemma_params_lib.load_and_format_params(
-        os.path.join(ckpt_path, model_version)
+    
+    model_version = model_name.split('-')[0]
+    model_size = model_name.split('-')[1]
+    
+    logging.info("model_version %s", model_version)
+    logging.info("model_size %s", model_size)
+    
+    utils.show_hbm_usage("after load params")
+    if model_version =="gemma" or model_version == "gemma2":
+      params_path = os.path.join(ckpt_path,model_size)
+      params = gemma_params_lib.load_and_format_params(
+        params_path
     )
-<<<<<<< HEAD
-
-    model = gemma_lib.Transformer.from_params(params, version=model_version)
-=======
-    # utils.show_hbm_usage("after load params")
-    model = gemma_lib.Transformer.from_params(params, version=model_version)
-    # utils.show_hbm_usage("after load models")
->>>>>>> 2f76799 (add latest change)
-    if _source_third_party(ckpt_source):
+      model = gemma_lib.Transformer.from_params(params, version=model_size)
+      if _source_third_party(ckpt_source):
       # Load the model and save to checkpoint locally, then reload the model
       # sharded. This is a workaround, as the checkpoint on 3rd party don't work
       # with NNX. This takes a long time. Skip if conversion is not needed.
-      model, mesh = _gemma_conversion(hyperparms, model, params)
-    else:
-      mesh = jax.make_mesh(*hyperparms.mesh)
-
-    tokenizer = data_lib.GemmaTokenizer(
+        model = _gemma_conversion(hyperparms, model, params, mesh)
+      tokenizer = data_lib.GemmaTokenizer(
         os.path.join(ckpt_path, 'tokenizer.model')
-    )
-<<<<<<< HEAD
+      )
+      
+    else:
+      model_config = obtain_model_config(model_name)
+      model = gemma3_params_lib.create_model_from_checkpoint(ckpt_path, model_config, mesh)
+      tokenizer = data_lib.GemmaTokenizer(hyperparms.config['tokenizer_path'])
+      
+    utils.show_hbm_usage("after load models")
 
-=======
-    # utils.show_hbm_usage("after create token")
->>>>>>> 2f76799 (add latest change)
-    def gen_model_input_fn(x: peft_trainer.TrainingInput):
-      pad_mask = x.input_tokens != tokenizer.pad_id()
-      positions = gemma_lib.build_positions_from_mask(pad_mask)
-      attention_mask = gemma_lib.make_causal_attn_mask(pad_mask)
-      return {
-          'input_tokens': x.input_tokens,
-          'input_mask': x.input_mask,
-          'positions': positions,
-          'attention_mask': attention_mask,
-      }
+
+    utils.show_hbm_usage("after create token")
+    # def gen_model_input_fn(x: peft_trainer.TrainingInput):
+    #   pad_mask = x.input_tokens != tokenizer.pad_id()
+    #   positions = gemma_lib.build_positions_from_mask(pad_mask)
+    #   attention_mask = gemma_lib.make_causal_attn_mask(pad_mask)
+    #   return {
+    #       'input_tokens': x.input_tokens,
+    #       'input_mask': x.input_mask,
+    #       'positions': positions,
+    #       'attention_mask': attention_mask,
+    #   }
 
     train_ds, validation_ds = data_lib.create_datasets(
       dataset_name=hyperparms.config['dataset_name'],
@@ -318,69 +393,66 @@ def run_peft_trainer(hyperparms: config.HyperParameters):
       max_target_length=hyperparms.config['max_target_length'],
       num_train_epochs=hyperparms.config['num_train_epochs'],
       tokenizer=tokenizer)
-<<<<<<< HEAD
-    
-=======
     # utils.show_hbm_usage("after create dataset")
->>>>>>> 2f76799 (add latest change)
-  elif model_name.startswith('llama3.1') and ckpt_source == 'huggingface':
+  elif ckpt_source == 'huggingface':
     model_cp_path = hyperparms.config['hf_cp_base_model_directory']
     _hf_pipeline(hyperparms)
-    mesh = jax.make_mesh(*hyperparms.mesh)
     # pick corresponding config based on model version
     model_config = obtain_model_config(model_name)
-    model = llama3_params_lib.create_model_from_safe_tensors(
-        model_cp_path, model_config, mesh
-    )
-    hf_tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", add_bos_token=True, add_eos_token=True, token= os.environ.get('T_HF_TOKEN'))
-    if hf_tokenizer.pad_token_id is not None:
-      pad_id = hf_tokenizer.pad_token_id
-    else:
-      pad_id = 0
+    model = create_model_dynamically(model_name, model_cp_path, model_config, mesh)
+    # model = qwen2_params_lib.create_model_from_safe_tensors(
+    #     model_cp_path, model_config, mesh
+    # )
+    utils.show_hbm_usage("after load model")
+    tokenizer = data_lib.HFTokenizer(hyperparms.config['tokenizer_path'], add_bos = True, add_eos=True, hf_access_token=os.environ.get('T_HF_TOKEN'))
+    # hf_tokenizer = transformers.AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct", add_bos_token=True, add_eos_token=True, token= os.environ.get('T_HF_TOKEN'))
+    # if hf_tokenizer.pad_token_id is not None:
+    #   pad_id = hf_tokenizer.pad_token_id
+    # else:
+    #   pad_id = 0
 
     # logging.info("pad id %d", pad_id)
-    def gen_model_input_fn(x: peft_trainer.TrainingInput):
-      pad_mask = x.input_tokens != 0
-      # logging.info("type of input_token %s", type(x.input_tokens))
-      
-      positions = gemma_lib.build_positions_from_mask(pad_mask)
-      attention_mask = gemma_lib.make_causal_attn_mask(pad_mask)
-      return {
-          'input_tokens': x.input_tokens,
-          'input_mask': x.input_mask,
-          'positions': positions,
-          'attention_mask': attention_mask,
-      }
-  
-    train_ds = data_lib.create_datasets(
-    dataset_name=hyperparms.config['dataset_name'],
-    global_batch_size=hyperparms.config['batch_size'],
-    max_target_length=hyperparms.config['max_target_length'],
-    num_train_epochs=hyperparms.config['num_train_epochs'],
-    tokenizer=hf_tokenizer,
-    )
-    # logging.info("type(train_ds) %s",type(train_ds))
 
-
-  if hyperparms.config['visualize_model']:
-    nnx.display(model)
 
   if hyperparms.config['lora_config']:
     # Apply Lora to model if given lora config
     model = _apply_lora_to_model(model, mesh, hyperparms.config['lora_config'])
-    if hyperparms.config['visualize_model']:
-      nnx.display(model)
+  else:
+    logging.info("Training with Full Weight")
+  utils.show_hbm_usage("after lora")
+  if hyperparms.config['visualize_model']:
+    nnx.display(model)
 
-
-  # optimizer = optax.inject_hyperparams(optax.adamw, hyperparam_dtype=jnp.float32)(learning_rate=1e-5)
-  optimizer = optax.adamw(1e-5)
   trainer = peft_trainer.PeftTrainer(
       model, hyperparms.optimizer, hyperparms.training_config
   )
-  trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
   
+  def gen_model_input_fn(x: peft_trainer.TrainingInput):
+    pad_mask = x.input_tokens != 0
+    # logging.info("type of input_token %s", type(x.input_tokens))
+    
+    positions = gemma_lib.build_positions_from_mask(pad_mask)
+    attention_mask = gemma_lib.make_causal_attn_mask(pad_mask)
+    return {
+        'input_tokens': x.input_tokens,
+        'input_mask': x.input_mask,
+        'positions': positions,
+        'attention_mask': attention_mask,
+  }
+  trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
+
+  
+  train_ds, validation_ds = data_lib.create_datasets(
+    dataset_name=hyperparms.config['dataset_name'],
+    global_batch_size=hyperparms.config['batch_size'],
+    max_target_length=hyperparms.config['max_target_length'],
+    num_train_epochs=hyperparms.config['num_train_epochs'],
+    tokenizer=tokenizer,
+    )
+  utils.show_hbm_usage("after dataset creation")
+      
   with mesh:
-    trainer.train(train_ds, None)
+    trainer.train(train_ds, validation_ds)
 
 
 def main(argv, **kwargs):
