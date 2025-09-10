@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Check if a Tunix supported model's logits match the HF logits."""
-# python -m tests.forward_pass_logit_checker --model_name=gemma2-7b-it
+# python -m tests.forward_pass_logit_checker --model_name=gemma3-27b-it
 
 import argparse
 import os
@@ -37,7 +37,7 @@ def load_gemma3_model(mesh):
 
 
 SUPPORTED_MODELS = {
-    "gemma2-7b-it": (
+    "gemma3-27b-it": (
         "google/gemma-3-27b-it",
         load_gemma3_model,
         gemma3_params_lib.create_tokenizer,
@@ -296,7 +296,7 @@ def main(test_args):
     # --- Tunix Forward Pass ---
     output = sampler(
         [input_text],
-        total_generation_steps=1,
+        max_generation_steps=1,
         max_prompt_length=test_args.max_target_length,
         echo=True,
         return_logits=True,
@@ -334,9 +334,6 @@ if __name__ == "__main__":
   parser.add_argument(
       "--model_name", type=str, required=True, help="Name of the model to test."
   )
-  parser.add_argument("--atol", type=float, required=False, default=0.1)
-  parser.add_argument("--rtol", type=float, required=False, default=0.1)
-  parser.add_argument("--token_size", type=int, required=False)
   parser.add_argument("--max_kl_div", type=float, required=False, default=0.015)
   parser.add_argument(
       "--max_target_length", type=int, required=False, default=1024
