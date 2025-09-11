@@ -4,15 +4,17 @@ import logging
 import sys
 import shutil
 from pathlib import Path
+import shutil
+from pathlib import Path
 
 os.environ['TPU_LIBRARY_PATH'] = '/home/linchai_google_com/miniconda3/envs/qwen/lib/python3.12/site-packages/libtpu/libtpu.so'
 
 # Data
-BATCH_SIZE = 64
-print("Batch size:", BATCH_SIZE)
+BATCH_SIZE = 4
+print(f"Batch size: {BATCH_SIZE}")
 
 # Model
-MESH = [(4, 1), ("fsdp", "tp")]
+MESH = [(1, 2), ("fsdp", "tp")]
 # LoRA
 RANK = 16
 ALPHA = 2.0
@@ -46,6 +48,25 @@ else:
 INTERMEDIATE_CKPT_DIR = "/tmp/content/intermediate_ckpt/"
 CKPT_DIR = "/tmp/content/ckpts/"
 PROFILING_DIR = "/tmp/content/profiling/"
+
+# The path to the directory you want to remove
+dir_path_str = "/tmp/content/"
+# It's often better to use pathlib objects for path manipulations
+dir_path = Path(dir_path_str)
+
+# Check if the directory exists before attempting to remove it
+if dir_path.exists():
+    if dir_path.is_dir():
+        print(f"Attempting to remove directory: {dir_path}")
+        try:
+            shutil.rmtree(dir_path)
+            print(f"Successfully removed directory: {dir_path}")
+        except OSError as e:
+            print(f"Error removing directory {dir_path}: {e}")
+    else:
+        print(f"Error: Path {dir_path} is a file, not a directory.")
+else:
+    print(f"Directory not found, nothing to remove: {dir_path}")
 
 def create_dir(path):
   try:
@@ -82,7 +103,8 @@ print("Model checkpoint path:", MODEL_CP_PATH)
 config = (
     model.ModelConfig.qwen3_14b()
 )  # pick correponding config based on model version
-qwen3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh, dtype=jax.numpy.float32)
+qwen3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh, jnp.float32)
+# qwen3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh)
 # nnx.display(qwen3)
 
 # from transformers import AutoTokenizer
@@ -178,6 +200,29 @@ import optax
 logging_option = metrics_logger.MetricsLoggerOptions(
     log_dir="/tmp/tensorboard/full", flush_every_n_steps=20
 )
+# training_config = peft_trainer.TrainingConfig(
+#     eval_every_n_steps=EVAL_EVERY_N_STEPS,
+#     max_steps=MAX_STEPS,
+#     metrics_logging_options=logging_option,
+# )
+# trainer = peft_trainer.PeftTrainer(qwen3, optax.adamw(1e-5), training_config)
+# trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
+
+# with jax.profiler.trace(os.path.join(PROFILING_DIR, "full_training")):
+#   with mesh:
+#     trainer.train(train_ds, validation_ds)
+    
+# print("Training full model.")
+# show_hbm_usage()
+
+
+# Since LoRA model is sharing backbone with base model,
+# restart Colab runtime so base model is loaded as pre-trained.
+
+# LoRA model
+lora_qwen3 = get_lora_model(qwen3, mesh=mesh)
+nnx.display(lora_qwen3)
+
 training_config = peft_trainer.TrainingConfig(
     eval_every_n_steps=EVAL_EVERY_N_STEPS,
     max_steps=MAX_STEPS,
@@ -217,12 +262,12 @@ show_hbm_usage()
 # show_hbm_usage()
 
 
-# # Since LoRA model is sharing backbone with base model,
-# # restart Colab runtime so base model is loaded as pre-trained.
+# Since LoRA model is sharing backbone with base model,
+# restart Colab runtime so base model is loaded as pre-trained.
 
-# #qlora model
-# lora_qwen3_quant = get_lora_model(qwen3, mesh=mesh, quantize=True)
-# nnx.display(lora_qwen3_quant)
+#qlora model
+lora_qwen3_quant = get_lora_model(qwen3, mesh=mesh, quantize=True)
+nnx.display(lora_qwen3_quant)
 
 # training_config = peft_trainer.TrainingConfig(
 #     eval_every_n_steps=EVAL_EVERY_N_STEPS,
@@ -232,9 +277,9 @@ show_hbm_usage()
 # qlora_trainer = peft_trainer.PeftTrainer(
 #     lora_qwen3_quant, optax.adamw(1e-3), training_config
 # ).with_gen_model_input_fn(gen_model_input_fn)
-# print("before qlora train")
+
 # with jax.profiler.trace(os.path.join(PROFILING_DIR, "peft")):
-# with mesh:
-#   qlora_trainer.train(train_ds, validation_ds)
+#   with mesh:
+#     qlora_trainer.train(train_ds, validation_ds)
 # print("Training qlora.")
 # show_hbm_usage()
