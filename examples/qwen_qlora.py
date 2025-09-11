@@ -2,14 +2,17 @@
 import os
 import logging
 import sys
+import shutil
+from pathlib import Path
 
 os.environ['TPU_LIBRARY_PATH'] = '/home/linchai_google_com/miniconda3/envs/qwen/lib/python3.12/site-packages/libtpu/libtpu.so'
 
 # Data
-BATCH_SIZE = 4
+BATCH_SIZE = 64
+print("Batch size:", BATCH_SIZE)
 
 # Model
-MESH = [(1, 1), ("fsdp", "tp")]
+MESH = [(4, 1), ("fsdp", "tp")]
 # LoRA
 RANK = 16
 ALPHA = 2.0
@@ -19,6 +22,25 @@ MAX_STEPS = 4
 EVAL_EVERY_N_STEPS = 20
 NUM_EPOCHS = 3
 
+
+# The path to the directory you want to remove
+dir_path_str = "/tmp/content/"
+# It's often better to use pathlib objects for path manipulations
+dir_path = Path(dir_path_str)
+
+# Check if the directory exists before attempting to remove it
+if dir_path.exists():
+    if dir_path.is_dir():
+        print(f"Attempting to remove directory: {dir_path}")
+        try:
+            shutil.rmtree(dir_path)
+            print(f"Successfully removed directory: {dir_path}")
+        except OSError as e:
+            print(f"Error removing directory {dir_path}: {e}")
+    else:
+        print(f"Error: Path {dir_path} is a file, not a directory.")
+else:
+    print(f"Directory not found, nothing to remove: {dir_path}")
 
 # Checkpoint saving
 INTERMEDIATE_CKPT_DIR = "/tmp/content/intermediate_ckpt/"
@@ -53,16 +75,15 @@ from flax import nnx
 import kagglehub
 from tunix.models.qwen3 import model
 from tunix.models.qwen3 import params
-import jax.numpy as jnp
 
-MODEL_CP_PATH = kagglehub.model_download("qwen-lm/qwen-3/transformers/0.6b")
+MODEL_CP_PATH = kagglehub.model_download("qwen-lm/qwen-3/transformers/14b")
+print("Model checkpoint path:", MODEL_CP_PATH)
 
 config = (
-    model.ModelConfig.qwen3_0_6b()
+    model.ModelConfig.qwen3_14b()
 )  # pick correponding config based on model version
-qwen3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh, jnp.float32)
-# qwen3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh)
-nnx.display(qwen3)
+qwen3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh, dtype=jax.numpy.float32)
+# nnx.display(qwen3)
 
 # from transformers import AutoTokenizer
 
@@ -74,20 +95,6 @@ tokenizer = data_lib.HFTokenizer(
     hf_access_token=os.environ.get('T_HF_TOKEN'),
     )
 
-# def templatize(prompts):
-#   out = []
-#   for p in prompts:
-#     out.append(
-#         tokenizer.apply_chat_template(
-#             [
-#                 {"role": "user", "content": p},
-#             ],
-#             tokenize=False,
-#             add_generation_prompt=True,
-#             enable_thinking=True,
-#         )
-#     )
-#   return out
 
 import functools
 import humanize
@@ -101,30 +108,8 @@ def show_hbm_usage():
     limit = stats["bytes_limit"]
     print(f"Using {fmt_size(used)} / {fmt_size(limit)} ({used/limit:%}) on {d}")
 
+print("before train")
 show_hbm_usage()
-
-# from tunix.generate import sampler
-
-# inputs = templatize([
-#     "which is larger 9.9 or 9.11?",
-#     "如何制作月饼?",
-#     "tell me your name, respond in Chinese",
-# ])
-
-# sampler = sampler.Sampler(
-#     qwen3,
-#     tokenizer,
-#     sampler.CacheConfig(
-#         cache_size=256, num_layers=28, num_kv_heads=8, head_dim=128
-#     ),
-# )
-# out = sampler(inputs, max_generation_steps=128, echo=True)
-
-# for t in out.text:
-#   print(t)
-#   print("*" * 30)
-
-# show_hbm_usage()
 
 import qwix
 def get_lora_model(base_model, mesh, quantize=False):
@@ -163,7 +148,7 @@ from tunix.rl import common
 from tunix.sft import peft_trainer
 
 train_ds, validation_ds = data_lib.create_datasets(
-    dataset_name='mtnt/en-fr',
+    dataset_name='Helsinki-NLP/opus-100',
     # Uncomment the line below to use a Hugging Face dataset.
     # Note that this requires upgrading the 'datasets' package and restarting
     # the Colab runtime.
@@ -173,7 +158,6 @@ train_ds, validation_ds = data_lib.create_datasets(
     num_train_epochs=NUM_EPOCHS,
     tokenizer=tokenizer,
 )
-
 
 def gen_model_input_fn(x: peft_trainer.TrainingInput):
   pad_mask = x.input_tokens != tokenizer.pad_id()
@@ -194,44 +178,43 @@ import optax
 logging_option = metrics_logger.MetricsLoggerOptions(
     log_dir="/tmp/tensorboard/full", flush_every_n_steps=20
 )
-# training_config = peft_trainer.TrainingConfig(
-#     eval_every_n_steps=EVAL_EVERY_N_STEPS,
-#     max_steps=MAX_STEPS,
-#     metrics_logging_options=logging_option,
-# )
-# trainer = peft_trainer.PeftTrainer(qwen3, optax.adamw(1e-5), training_config)
-# trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
-
-# with jax.profiler.trace(os.path.join(PROFILING_DIR, "full_training")):
-#   with mesh:
-#     trainer.train(train_ds, validation_ds)
-    
-# print("Training full model.")
-# show_hbm_usage()
-
-
-# Since LoRA model is sharing backbone with base model,
-# restart Colab runtime so base model is loaded as pre-trained.
-
-# LoRA model
-lora_qwen3 = get_lora_model(qwen3, mesh=mesh)
-nnx.display(lora_qwen3)
-
 training_config = peft_trainer.TrainingConfig(
     eval_every_n_steps=EVAL_EVERY_N_STEPS,
     max_steps=MAX_STEPS,
-    checkpoint_root_directory=CKPT_DIR,
+    metrics_logging_options=logging_option,
 )
-lora_trainer = peft_trainer.PeftTrainer(
-    lora_qwen3, optax.adamw(1e-3), training_config
-).with_gen_model_input_fn(gen_model_input_fn)
+trainer = peft_trainer.PeftTrainer(qwen3, optax.adamw(1e-5), training_config)
+trainer = trainer.with_gen_model_input_fn(gen_model_input_fn)
 
-print("Start to train lora.")
-with jax.profiler.trace(os.path.join(PROFILING_DIR, "peft")):
+with jax.profiler.trace(os.path.join(PROFILING_DIR, "full_training")):
   with mesh:
-    lora_trainer.train(train_ds, validation_ds)
-print("Training lora.")
+    trainer.train(train_ds, validation_ds)
+    
+print("Training full model.")
 show_hbm_usage()
+
+
+# # Since LoRA model is sharing backbone with base model,
+# # restart Colab runtime so base model is loaded as pre-trained.
+
+# # LoRA model
+# lora_qwen3 = get_lora_model(qwen3, mesh=mesh)
+# nnx.display(lora_qwen3)
+
+# training_config = peft_trainer.TrainingConfig(
+#     eval_every_n_steps=EVAL_EVERY_N_STEPS,
+#     max_steps=MAX_STEPS,
+#     checkpoint_root_directory=CKPT_DIR,
+# )
+# lora_trainer = peft_trainer.PeftTrainer(
+#     lora_qwen3, optax.adamw(1e-3), training_config
+# ).with_gen_model_input_fn(gen_model_input_fn)
+
+# # with jax.profiler.trace(os.path.join(PROFILING_DIR, "peft")):
+# with mesh:
+#     lora_trainer.train(train_ds, validation_ds)
+# print("Training lora.")
+# show_hbm_usage()
 
 
 # # Since LoRA model is sharing backbone with base model,
@@ -249,9 +232,9 @@ show_hbm_usage()
 # qlora_trainer = peft_trainer.PeftTrainer(
 #     lora_qwen3_quant, optax.adamw(1e-3), training_config
 # ).with_gen_model_input_fn(gen_model_input_fn)
-
+# print("before qlora train")
 # with jax.profiler.trace(os.path.join(PROFILING_DIR, "peft")):
-#   with mesh:
-#     qlora_trainer.train(train_ds, validation_ds)
+# with mesh:
+#   qlora_trainer.train(train_ds, validation_ds)
 # print("Training qlora.")
 # show_hbm_usage()
