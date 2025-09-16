@@ -83,36 +83,4 @@
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="Gemma2 Model Load Example">
-
-.. only:: html
-
-  .. image:: _static/img/sphx_glr_local_module_thumb.png
-    :alt: Gemma2 Model Load Example
-
-  :doc:`_collections/examples/model_load/from_safetensor_load/gemma2_model_load`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">Gemma2 Model Load Example</div>
-    </div>
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="Gemma3 Model Load Example">
-
-.. only:: html
-
-  .. image:: _static/img/sphx_glr_local_module_thumb.png
-    :alt: Gemma3 Model Load Example
-
-  :doc:`_collections/examples/model_load/from_safetensor_load/gemma3_model_load`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">Gemma3 Model Load Example</div>
-    </div>
-
-.. raw:: html
-
     </div>

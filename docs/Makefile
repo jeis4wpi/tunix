@@ -16,7 +16,7 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)
-	rm -rf _gallery/
+	rm -rf _collections/
 
 html:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

@@ -20,7 +20,12 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "_collections/examples/model_load/from_safetensor_load/*",
+]
 
 source_suffix = [".rst", ".md", ".ipynb"]
 
@@ -66,7 +71,7 @@ collections = {
     "examples": {
         "driver": "copy_folder",
         "source": "../examples/",
-        "ignore": "",
+        "ignore": "../examples/model_load/from_safetensor_load/*",
     }
 }
 

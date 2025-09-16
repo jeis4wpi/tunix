@@ -7,4 +7,4 @@ This directory contains examples using the Tunix library.
   :glob:
   :maxdepth: 1
 
-  **
+  *
