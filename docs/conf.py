@@ -46,7 +46,7 @@ sphinx_gallery_conf = {
         "_collections/gallery/"
     ),  # path to where to save gallery generated output
     "filename_pattern": "*.py",
-    #"ignore_pattern": r"_test\.py",  # no gallery for test of examples
+    #"ignore_pattern": r"_collections/examples/model_load/*",  # no gallery for test of examples
     #"doc_module": "optax",
     #"backreferences_dir": os.path.join("modules", "generated"),
 }
@@ -56,7 +56,7 @@ myst_enable_extensions = [
     "amsmath",
     "dollarmath",
 ]
-nb_execution_mode = "force"
+nb_execution_mode = "off"
 nb_execution_allow_errors = False
 nb_render_image_options = {}
 nb_execution_excludepatterns = [
@@ -69,7 +69,7 @@ collections = {
     "examples": {
         "driver": "copy_folder",
         "source": "../examples/",
-        "ignore": "BUILD"
+        "ignore": ""
     }
 }
 
