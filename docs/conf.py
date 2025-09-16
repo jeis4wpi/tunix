@@ -6,29 +6,29 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Tunix'
-copyright = '2025, Tunix Developers'
-author = 'Tunix Developers'
+project = "Tunix"
+copyright = "2025, Tunix Developers"
+author = "Tunix Developers"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'myst_nb',
-    'sphinx_gallery.gen_gallery',
-    'sphinxcontrib.collections',
+    "myst_nb",
+    "sphinx_gallery.gen_gallery",
+    "sphinxcontrib.collections",
 ]
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 source_suffix = [".rst", ".md", ".ipynb"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_book_theme'
-html_static_path = ['_static']
+html_theme = "sphinx_book_theme"
+html_static_path = ["_static"]
 html_logo = "_static/img/tunix.png"
 
 html_theme_options = {
@@ -46,9 +46,6 @@ sphinx_gallery_conf = {
         "_collections/gallery/"
     ),  # path to where to save gallery generated output
     "filename_pattern": "*.py",
-    #"ignore_pattern": r"_collections/examples/model_load/*",  # no gallery for test of examples
-    #"doc_module": "optax",
-    #"backreferences_dir": os.path.join("modules", "generated"),
 }
 
 # -- Options for myst -------------------------------------------------------
@@ -69,8 +66,8 @@ collections = {
     "examples": {
         "driver": "copy_folder",
         "source": "../examples/",
-        "ignore": ""
+        "ignore": "",
     }
 }
 
-suppress_warnings = ['misc.highlighting_failure']
+suppress_warnings = ["misc.highlighting_failure"]
