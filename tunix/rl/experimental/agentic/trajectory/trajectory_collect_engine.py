@@ -130,6 +130,7 @@ class TrajectoryCollectEngine:
           timeout=timeout,
       )
       traj = await engine.collect()
+      print('test')
       return i, traj
 
     # Launch all pairs concurrently and yield results as they complete
