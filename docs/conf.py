@@ -1,13 +1,14 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Configuration file for the Sphinx documentation builder.
+
+For the full list of built-in configuration values, see the documentation:
+https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Tunix"
-copyright = "2025, Tunix Developers"
+copyright = "2025, Tunix Developers"  # pylint: disable=redefined-builtin
 author = "Tunix Developers"
 
 # -- General configuration ---------------------------------------------------
