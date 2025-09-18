@@ -639,11 +639,11 @@ class PeftTrainer:
           self._iter_steps += 1
 
           # Actual checkpoint frequency is configured by checkpointing_options.
-          self.checkpoint_manager.save(
-              self._iter_steps,
-              self.model,
-              save_only_lora_params=self._lora_enabled,
-          )
+          # self.checkpoint_manager.save(
+          #     self._iter_steps,
+          #     self.model,
+          #     save_only_lora_params=self._lora_enabled,
+          # )
 
           if (
               self._iter_steps
@@ -668,13 +668,13 @@ class PeftTrainer:
 
   def _save_last_checkpoint(self):
     last_saved_step = self.checkpoint_manager.latest_step()
-    if last_saved_step is None or last_saved_step < self._iter_steps:
-      self.checkpoint_manager.save(
-          self._iter_steps,
-          self.model,
-          save_only_lora_params=self._lora_enabled,
-          force=True,
-      )
+    # if last_saved_step is None or last_saved_step < self._iter_steps:
+    #   self.checkpoint_manager.save(
+    #       self._iter_steps,
+    #       self.model,
+    #       save_only_lora_params=self._lora_enabled,
+    #       force=True,
+    #   )
 
   @property
   def train_steps(self) -> int:
