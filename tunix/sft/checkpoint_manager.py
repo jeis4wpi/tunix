@@ -17,6 +17,7 @@
 import time
 from absl import logging
 from flax import nnx
+import jax
 import orbax.checkpoint as ocp
 
 
@@ -45,8 +46,14 @@ class CheckpointManager:
     """
     self._checkpoint_manager: ocp.CheckpointManager | None = None
     if root_directory is not None:
+      item_handlers = {
+          "items": ocp.PyTreeCheckpointHandler(use_ocdbt=False, use_zarr3=False)
+      }
+      item_names = ("items",)
       self._checkpoint_manager = ocp.CheckpointManager(
           root_directory,
+          item_names=item_names,
+          item_handlers=item_handlers,
           options=options or _DEFAULT_CHECKPOINTING_OPTIONS,
       )
 
@@ -83,10 +90,15 @@ class CheckpointManager:
       params = nnx.state(model, nnx.LoRAParam)
     else:
       params = nnx.state(model)
+    pytree_params = jax.tree.map(
+        lambda x: x.value if isinstance(x, nnx.Variable) else x,
+        params,
+        is_leaf=lambda n: isinstance(n, nnx.Variable),
+    )
     return self._checkpoint_manager.save(
         step,
         args=ocp.args.Composite(
-            model_params=ocp.args.StandardSave(params),
+            items=ocp.args.PyTreeSave(pytree_params),
         ),
         force=force,
     )
@@ -121,14 +133,19 @@ class CheckpointManager:
       abstract_params = nnx.state(model, nnx.LoRAParam)
     else:
       abstract_params = nnx.state(model)
+    abstract_pytree = jax.tree.map(
+        lambda x: x.value if isinstance(x, nnx.Variable) else x,
+        abstract_params,
+        is_leaf=lambda n: isinstance(n, nnx.Variable),
+    )
     ckpt = self._checkpoint_manager.restore(
         step,
         args=ocp.args.Composite(
-            model_params=ocp.args.StandardRestore(abstract_params),
+            items=ocp.args.PyTreeRestore(abstract_pytree),
         ),
     )
     # Update the model state with params from the restored checkpoint.
-    nnx.update(model, ckpt.model_params)
+    nnx.update(model, ckpt.items)
     logging.info(
         "Restored params from step: %d in %.3f seconds",
         step,
