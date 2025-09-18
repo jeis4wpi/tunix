@@ -36,6 +36,8 @@ class CheckpointManager:
       self,
       root_directory: str | None = None,
       options: ocp.CheckpointManagerOptions | None = None,
+      checkpoint_storage_use_ocdbt: bool = True,
+      checkpoint_storage_use_zarr3: bool = True,
   ):
     """Initializes the checkpoint manager.
 
@@ -145,7 +147,12 @@ class CheckpointManager:
         ),
     )
     # Update the model state with params from the restored checkpoint.
-    nnx.update(model, ckpt.items)
+    # Create a new State object from the restored pytree of arrays,
+    # using the abstract_params as a structural template.
+    restored_state = jax.tree.map(
+        lambda var, val: var.replace(value=val), abstract_params, ckpt.items
+    )
+    nnx.update(model, restored_state)
     logging.info(
         "Restored params from step: %d in %.3f seconds",
         step,

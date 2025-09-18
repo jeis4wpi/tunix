@@ -36,13 +36,16 @@ def measure_tflops_per_step(
   try:
     compiled = train_step_fn.lower(model, optimizer, train_example).compile()
     cost = compiled.cost_analysis()
+    if cost is None:
+      logging.warning("JAX cost_analysis returned None.")
+      return None
     flops = cost.get("flops")
     if flops is None:
       logging.warning("JAX cost_analysis did not return a 'flops' value.")
       return None
     # Convert FLOPs to TFLOPs
     return float(flops) / 1e12
-  except (TypeError, ValueError) as e:
+  except (TypeError, ValueError, AttributeError) as e:
     logging.error("Could not measure TFLOPs due to an error: %s", e)
     return None
 
