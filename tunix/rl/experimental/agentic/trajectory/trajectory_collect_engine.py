@@ -1,17 +1,10 @@
-"""Engine for collecting trajectories from agent-environment interactions.
-
-This module defines the `TrajectoryCollectEngine`, which facilitates the
-asynchronous collection of rollouts by managing the interaction loop between
-an LLM-based agent and an environment. It supports single and concurrent
-multi-pair trajectory collection.
-"""
-
 import asyncio
 import logging
 import time
 from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Tuple
 from tunix.rl.experimental.agentic.agents import base_agent
 from tunix.rl.experimental.agentic.environments import base_environment
+from tunix.rl.experimental.agentic.utils import convert_messages_to_tokens_and_masks
 
 BaseEnv = base_environment.BaseEnv
 Trajectory = base_agent.Trajectory
@@ -42,6 +35,8 @@ class TrajectoryCollectEngine:
       max_steps: int = 10,
       gamma: float = 1.0,
       timeout: float = 30.0,
+      tokenizer=None,
+      chat_parser=None,
   ):
     """Initialize the trajectory collection engine.
 
@@ -59,6 +54,8 @@ class TrajectoryCollectEngine:
           discounting)
         timeout (float): Maximum episode duration in seconds before timeout
           termination
+        tokenizer: Optional tokenizer for converting messages to token IDs
+        chat_parser: Optional chat parser for formatting messages
     """
     self.agent = agent
     self.env = env
@@ -68,25 +65,83 @@ class TrajectoryCollectEngine:
     self.gamma = gamma
     self.timeout = timeout
 
-  async def collect(self) -> Trajectory:
+    # Tokenizer utilities for stepwise tokenization
+    self.tokenizer = tokenizer
+    self.chat_parser = chat_parser
+
+
+  async def collect(self, mode: str = "Text") -> Any:
     """Execute a complete rollout episode and return the resulting trajectory.
 
     Orchestrates the full interaction sequence: environment reset, iterative
     agent-environment steps, final reward computation, Monte Carlo return
     calculation, and resource cleanup.
 
+    Args:
+        mode (str): Output format. Options:
+            - "Text": return full Trajectory object (default).
+            - "Token": return flattened tokenized dict for training.
+            - "Step": return stepwise tokenized data only.
+            - "Conversation": return raw conversation messages.
+
     Returns:
-        Trajectory: Complete episode trace with all steps, rewards, and returns
+        Trajectory | dict | list: Depending on mode.
     """
     await self._reset()
     for _ in range(self.max_steps):
-      done = await self._one_step()
-      if done:
-        break
+        done = await self._one_step()
+        if done:
+            break
     await self._append_final_reward()
     self._fill_returns()
     await self._close()
-    return self.agent.trajectory
+
+    if mode == "Text":
+        return self.agent.trajectory
+    elif mode == "Step":
+        # return stepwise info only
+        return [
+            {
+                "context_tokens": getattr(step, "context_tokens", []),
+                "prompt_tokens": getattr(step, "prompt_tokens", []),
+                "response_tokens": getattr(step, "response_tokens", []),
+                "response_masks": getattr(step, "response_masks", []),
+                "reward": step.reward,
+                "mc_return": step.mc_return,
+            }
+            for step in self.agent.trajectory.steps
+        ]
+    elif mode == "Token":
+        # flatten all steps into single batch dict
+        prompt_tokens, response_tokens, response_masks = [], [], []
+        sep_token_id = getattr(self.tokenizer, "eos_token_id", None)
+
+        for i, step in enumerate(self.agent.trajectory.steps):
+            if hasattr(step, "prompt_tokens"):
+                prompt_tokens.extend(step.prompt_tokens)
+            if hasattr(step, "response_tokens"):
+                response_tokens.extend(step.response_tokens)
+            if hasattr(step, "response_masks"):
+                response_masks.extend(step.response_masks)
+
+            # add separator between steps
+            if sep_token_id is not None and i < len(self.agent.trajectory.steps) - 1:
+                response_tokens.append(sep_token_id)
+                response_masks.append(1)
+
+        return {
+            "prompt_tokens": prompt_tokens,
+            "response_tokens": response_tokens,
+            "response_masks": response_masks,
+            "trajectory_reward": self.agent.trajectory.reward,
+        }
+    elif mode == "Conversation":
+        # return raw conversation history
+        return self.agent.chat_completions
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
+
+
 
   @staticmethod
   async def collect_multiple(
@@ -182,7 +237,49 @@ class TrajectoryCollectEngine:
     )
     self.agent.update_from_env(obs, rew, done, info)
 
-    # 3) Check for timeout termination
+    # 3) Convert messages to stepwise tokens if tokenizer is available
+    if self.tokenizer is not None and self.chat_parser is not None:
+      cur_step = self.agent.get_current_state()
+      if cur_step is not None:
+        try:
+          # (a) context tokens (all history)
+          context_tokens, _ = convert_messages_to_tokens_and_masks(
+              self.agent.chat_completions,
+              tokenizer=self.tokenizer,
+              parser=self.chat_parser,
+              contains_first_msg=True,
+              contains_generation_msg=True,
+          )
+          cur_step.context_tokens = context_tokens
+
+          # (b) last user prompt tokens
+          user_messages = [m for m in self.agent.chat_completions if m["role"] == "user"]
+          if user_messages:
+            last_user_msg = [user_messages[-1]]
+            prompt_tokens, _ = convert_messages_to_tokens_and_masks(
+                last_user_msg,
+                tokenizer=self.tokenizer,
+                parser=self.chat_parser,
+                contains_first_msg=False,
+                contains_generation_msg=True,
+            )
+            cur_step.prompt_tokens = prompt_tokens
+
+          # (c) assistant response tokens
+          response_tokens, response_masks = convert_messages_to_tokens_and_masks(
+              [{"role": "assistant", "content": resp}],
+              tokenizer=self.tokenizer,
+              parser=self.chat_parser,
+              contains_first_msg=False,
+              contains_generation_msg=False,
+          )
+          cur_step.response_tokens = response_tokens
+          cur_step.response_masks = response_masks
+
+        except Exception as e:
+          logger.error(f"Tokenization failed at step: {e}")
+
+    # 4) Check for timeout termination
     if time.time() - self._start_ts > self.timeout:
       self.agent.get_current_state().done = True
       return True

@@ -6,7 +6,7 @@ and complete episode trajectories.
 """
 
 import dataclasses
-from typing import Any
+from typing import Any, List
 
 field = dataclasses.field
 dataclass = dataclasses.dataclass
@@ -58,6 +58,10 @@ class Step:
   reward: float = 0.0
   done: bool = False
   mc_return: float = 0.0
+  context_tokens: List[int] = field(default_factory=list)  
+  prompt_tokens: List[int] = field(default_factory=list)   
+  response_tokens: List[int] = field(default_factory=list)  
+  response_masks: List[int] = field(default_factory=list)
 
 
 @dataclass
