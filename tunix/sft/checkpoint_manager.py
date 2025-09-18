@@ -49,7 +49,7 @@ class CheckpointManager:
     self._checkpoint_manager: ocp.CheckpointManager | None = None
     if root_directory is not None:
       item_handlers = {
-          "items": ocp.PyTreeCheckpointHandler(use_ocdbt=False, use_zarr3=False)
+          "items": ocp.PyTreeCheckpointHandler(use_ocdbt=checkpoint_storage_use_ocdbt, use_zarr3=checkpoint_storage_use_zarr3)
       }
       item_names = ("items",)
       self._checkpoint_manager = ocp.CheckpointManager(
