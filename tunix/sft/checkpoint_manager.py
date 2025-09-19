@@ -97,8 +97,16 @@ class CheckpointManager:
         params,
         is_leaf=lambda n: isinstance(n, nnx.Variable),
     )
-    # Materialize the params to concrete values before saving.
-    pytree_params = jax.device_put(pytree_params)
+    # Block and wait for all computations on the params to complete.
+    jax.block_until_ready(pytree_params)
+    logging.info("Saving checkpoint for step %d", step)
+
+    # # Correct example of using jax.debug.structure()
+    # # This will print a summary of the pytree to the console/logs.
+    # logging.info("--- Pytree params structure: ---")
+    # jax.debug.structure(pytree_params)
+    # logging.info("---------------------------------")
+
     return self._checkpoint_manager.save(
         step,
         args=ocp.args.Composite(
