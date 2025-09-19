@@ -1,6 +1,4 @@
-from transformers import PreTrainedTokenizerBase
-
-def convert_messages_to_tokens_and_masks(messages: list[dict[str, str]], tokenizer: PreTrainedTokenizerBase, parser: ChatTemplateParser, contains_first_msg=False, contains_generation_msg=False):
+def convert_messages_to_tokens_and_masks(messages: list[dict[str, str]], tokenizer, parser, contains_first_msg=False, contains_generation_msg=False):
     """
     Converts multiple messages to tokens and masks.
     contains_first_msg flag and contains_generaiton_msg flag are used to indicate whether the conversation is for beginning or contains the generation.
