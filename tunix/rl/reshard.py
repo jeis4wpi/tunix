@@ -135,6 +135,7 @@ def _get_reshard_fn(
           donate=donate,
           use_experimental_pre_reshard=use_experimental_pre_reshard,
       )
+      print(f'Using reshard function from {get_reshard_fn=}.')
     except (ImportError, EnvironmentError):
       logging.debug('Could not support {get_reshard_fn=}.', exc_info=True)
     else:

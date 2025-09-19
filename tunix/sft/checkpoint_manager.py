@@ -97,6 +97,8 @@ class CheckpointManager:
         params,
         is_leaf=lambda n: isinstance(n, nnx.Variable),
     )
+    # Materialize the params to concrete values before saving.
+    pytree_params = jax.device_put(pytree_params)
     return self._checkpoint_manager.save(
         step,
         args=ocp.args.Composite(
