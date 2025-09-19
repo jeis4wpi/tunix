@@ -19,7 +19,7 @@ from absl import logging
 from flax import nnx
 import jax
 import orbax.checkpoint as ocp
-
+from flax.traverse_util import flatten_dict, unflatten_dict
 
 _DEFAULT_CHECKPOINTING_OPTIONS = ocp.CheckpointManagerOptions(
     save_decision_policy=ocp.checkpoint_managers.ContinuousCheckpointingPolicy(
@@ -92,11 +92,30 @@ class CheckpointManager:
       params = nnx.state(model, nnx.LoRAParam)
     else:
       params = nnx.state(model)
-    pytree_params = jax.tree.map(
-        lambda x: x.value if isinstance(x, nnx.Variable) else x,
-        params,
-        is_leaf=lambda n: isinstance(n, nnx.Variable),
-    )
+    # pytree_params = jax.tree.map(
+    #     lambda x: x.value if isinstance(x, nnx.Variable) else x,
+    #     params,
+    #     is_leaf=lambda n: isinstance(n, nnx.Variable),
+    # )
+      # ---- START: New Robust Sanitization Logic ----
+
+    # 1. Flatten the complex nnx.state into a simple {path: value} dictionary.
+    # The values are still nnx.Variable objects.
+    flat_state = flatten_dict(params)
+
+    # 2. Create a new flat dictionary, unwrapping the nnx.Variable objects
+    # into raw JAX arrays. This implicitly filters out any non-Variable leaves.
+    plain_flat_dict = {
+        key: leaf.value
+        for key, leaf in flat_state.items()
+        if isinstance(leaf, nnx.Variable)
+    }
+
+    # 3. Rebuild the nested structure from the clean, flat dictionary.
+    # The result is a pure PyTree of JAX arrays with no nnx objects.
+    pytree_params = unflatten_dict(plain_flat_dict)
+
+  # ---- END: New Robust Sanitization Logic ----
     # Block and wait for all computations on the params to complete.
     jax.block_until_ready(pytree_params)
     logging.info("Saving checkpoint for step %d", step)
