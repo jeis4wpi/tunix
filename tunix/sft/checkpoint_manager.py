@@ -97,7 +97,16 @@ class CheckpointManager:
     #     params,
     #     is_leaf=lambda n: isinstance(n, nnx.Variable),
     # )
-      # ---- START: New Robust Sanitization Logic ----
+
+
+    # ---- START: New Diagnostic Step ----
+    # Let's inspect the types of the leaf nodes in the state PyTree.
+    # This will tell us what's actually in the model's state.
+    types_in_state = jax.tree.map(lambda x: type(x), params)
+    logging.info("--- Inspecting types in nnx.state(model) ---")
+    logging.info("PyTree of types found in state: %s", types_in_state)
+    logging.info("---------------------------------------------")
+    # ---- START: New Robust Sanitization Logic ----
 
     # 1. Flatten the complex nnx.state into a simple {path: value} dictionary.
     # The values are still nnx.Variable objects.
@@ -116,6 +125,27 @@ class CheckpointManager:
     pytree_params = unflatten_dict(plain_flat_dict)
 
   # ---- END: New Robust Sanitization Logic ----
+
+
+    # Check if the resulting pytree is empty
+    if not pytree_params:
+        # Use ERROR level to make this highly visible
+        logging.error(
+            "Checkpoint failed at step %d because the final parameter tree to be saved is empty.",
+            step
+        )
+        # Count the variables found in the raw state to confirm.
+        variable_count = sum(1 for leaf in jax.tree_util.tree_leaves(params) if isinstance(leaf, nnx.Variable))
+        logging.error(
+            "The sanitization logic found %d instances of `nnx.Variable` in the model's raw state. "
+            "If this count is 0, the model passed to `save()` may have no parameters.",
+            variable_count
+        )
+        # We return here to prevent the Orbax crash and keep the logs clean.
+        return False
+    # ---- END: New Diagnostic Step ----
+
+
     # Block and wait for all computations on the params to complete.
     jax.block_until_ready(pytree_params)
     logging.info("Saving checkpoint for step %d", step)
