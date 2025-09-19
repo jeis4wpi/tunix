@@ -1,38 +1,56 @@
-def convert_messages_to_tokens_and_masks(messages: list[dict[str, str]], tokenizer, parser, contains_first_msg=False, contains_generation_msg=False):
+from typing import List, Dict, Tuple
+from transformers import PreTrainedTokenizerBase
+
+
+def convert_messages_to_tokens_and_masks(
+    messages: List[Dict[str, str]], 
+    tokenizer: PreTrainedTokenizerBase, 
+    parser, 
+    contains_first_msg: bool = False, 
+    contains_generation_msg: bool = False
+) -> Tuple[List[int], List[int]]:
     """
     Converts multiple messages to tokens and masks.
-    contains_first_msg flag and contains_generaiton_msg flag are used to indicate whether the conversation is for beginning or contains the generation.
-    The first and last message is assumed to be the special message respectively
-
+    
     Args:
-        messages (List[Dict]): The messages to convert.
-        tokenizer: The tokenizer to use.
-        contains_first_msg (bool): Whether the first message is a special message.
-        contains_generation_msg (bool): Whether the last message is a special message.
-
+        messages: The messages to convert
+        tokenizer: The tokenizer to use
+        parser: The chat template parser
+        contains_first_msg: Whether the first message is special
+        contains_generation_msg: Whether the last message needs generation prompt
+        
     Returns:
-        Tuple[List[int], List[int]]: A tuple containing all tokens and all masks.
+        Tuple containing (all_tokens, all_masks)
     """
-    all_msg_tokens = []
-    all_msg_masks = []
-
-    def _convert_message_to_tokens_and_masks(msg, first_msg=False, generation_msg=False):
-        msg_text = parser.parse([msg], add_generation_prompt=generation_msg, is_first_msg=first_msg)
-
-        # Remove the assistant token since it is contained in previous message as generation prompt
-        if msg["role"] == "assistant":
-            assert msg_text.startswith(parser.assistant_token), f"Expected assistant token {parser.assistant_token} but got {msg_text}"
-            msg_text = msg_text.replace(parser.assistant_token, "")
-
-        msg_tokens = tokenizer.encode(msg_text, add_special_tokens=False)
+    all_tokens = []
+    all_masks = []
+    
+    def convert_single_message(msg: Dict[str, str], is_first: bool = False, is_generation: bool = False) -> Tuple[List[int], List[int]]:
+        # Parse message to text
+        msg_text = parser.parse([msg], add_generation_prompt=is_generation, is_first_msg=is_first)
+        
+        # Remove assistant token if present (since it's in the previous generation prompt)
+        if msg["role"] == "assistant" and hasattr(parser, 'assistant_token'):
+            assistant_token = parser.assistant_token
+            if msg_text.startswith(assistant_token):
+                msg_text = msg_text[len(assistant_token):]
+        
+        # Tokenize
+        tokens = tokenizer.encode(msg_text, add_special_tokens=False)
+        
+        # Create mask (1 for assistant, 0 for others)
         mask_value = 1 if msg["role"] == "assistant" else 0
-        msg_mask = [mask_value] * len(msg_tokens)
-
-        return msg_tokens, msg_mask
-
+        masks = [mask_value] * len(tokens)
+        
+        return tokens, masks
+    
+    # Process each message
     for i, msg in enumerate(messages):
-        msg_tokens, msg_mask = _convert_message_to_tokens_and_masks(msg, first_msg=(contains_first_msg and i == 0), generation_msg=(contains_generation_msg and i == len(messages) - 1))
-        all_msg_tokens.extend(msg_tokens)
-        all_msg_masks.extend(msg_mask)
-
-    return all_msg_tokens, all_msg_masks
+        is_first = contains_first_msg and i == 0
+        is_generation = contains_generation_msg and i == len(messages) - 1
+        
+        tokens, masks = convert_single_message(msg, is_first, is_generation)
+        all_tokens.extend(tokens)
+        all_masks.extend(masks)
+    
+    return all_tokens, all_masks
