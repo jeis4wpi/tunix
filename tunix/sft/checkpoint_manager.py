@@ -66,56 +66,68 @@ class CheckpointManager:
     return self._checkpoint_manager.latest_step()
 
   def save(
-    self,
-    step: int,
-    model: nnx.Module,
-    save_only_lora_params: bool = False,
-    force: bool = False,
-) -> bool:
-    """Saves the params for the given step."""
-    if self._checkpoint_manager is None:
-      return False
-    if not force and not self._checkpoint_manager.should_save(step):
-      return False
+        self,
+        step: int,
+        model: nnx.Module,
+        save_only_lora_params: bool = False,
+        force: bool = False,
+    ) -> bool:
+        """Saves the params for the given step."""
+        if self._checkpoint_manager is None:
+            return False
+        if not force and not self._checkpoint_manager.should_save(step):
+            return False
+        
+        if save_only_lora_params:
+            params = nnx.state(model, nnx.LoRAParam)
+        else:
+            params = nnx.state(model)
 
-    if save_only_lora_params:
-      params = nnx.state(model, nnx.LoRAParam)
-    else:
-      params = nnx.state(model)
+        # ---- START: New Diagnostic Step ----
+        # This code will inspect the contents of `params` to see why it appears empty.
+        logging.info("--- Running Diagnostics: Inspecting model state ---")
 
-    # **THE FIX**: Cast the nnx.State object to a dict before flattening.
-    # This solves the AssertionError and allows the sanitization to work.
-    flat_state = flatten_dict(dict(params))
+        all_leaves = jax.tree_util.tree_leaves(params)
+        variable_leaves = [leaf for leaf in all_leaves if isinstance(leaf, nnx.Variable)]
+        other_leaves = [leaf for leaf in all_leaves if not isinstance(leaf, nnx.Variable)]
 
-    # Create a new flat dictionary, unwrapping the nnx.Variable objects.
-    plain_flat_dict = {
-        key: leaf.value
-        for key, leaf in flat_state.items()
-        if isinstance(leaf, nnx.Variable)
-    }
+        logging.info("Total leaves found in nnx.state(model): %d", len(all_leaves))
+        logging.info("Found %d leaves that are `nnx.Variable` instances.", len(variable_leaves))
+        logging.info("Found %d leaves that are NOT `nnx.Variable` instances.", len(other_leaves))
 
-    # Rebuild the nested structure from the clean, flat dictionary.
-    pytree_params = unflatten_dict(plain_flat_dict)
+        if other_leaves:
+            # Log the types of the first few "other" leaves to see what they are.
+            other_types = list(set(type(leaf) for leaf in other_leaves))
+            logging.info("Unique types of non-Variable leaves found: %s", other_types)
 
-    # Gracefully handle the case where the parameter tree is empty.
-    if not pytree_params:
-        logging.warning(
-            "Skipping checkpoint for step %d. The parameter tree to save is empty.", step
+        logging.info("--- End Diagnostics ---")
+        # ---- END: New Diagnostic Step ----
+
+        # The rest of the sanitization logic remains the same.
+        flat_state = flatten_dict(dict(params))
+        plain_flat_dict = {
+            key: leaf.value
+            for key, leaf in flat_state.items()
+            if isinstance(leaf, nnx.Variable)
+        }
+        pytree_params = unflatten_dict(plain_flat_dict)
+
+        # The check that produces your warning message.
+        if not pytree_params:
+            logging.warning(
+                "Skipping checkpoint for step %d. The parameter tree to save is empty.", step
+            )
+            return False
+
+        jax.block_until_ready(pytree_params)
+        logging.info("Saving checkpoint for step %d", step)
+        return self._checkpoint_manager.save(
+            step,
+            args=ocp.args.Composite(
+                items=ocp.args.PyTreeSave(pytree_params),
+            ),
+            force=force,
         )
-        return False
-
-    # Block until all computations on the concrete arrays are finished.
-    jax.block_until_ready(pytree_params)
-
-    logging.info("Saving checkpoint for step %d", step)
-
-    return self._checkpoint_manager.save(
-        step,
-        args=ocp.args.Composite(
-            items=ocp.args.PyTreeSave(pytree_params),
-        ),
-        force=force,
-    )
 
   def maybe_restore(
     self,
