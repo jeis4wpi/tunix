@@ -80,7 +80,8 @@ class Profiler:
     #     log_dir=self._output_path, profiler_options=profile_options
     # )
     # Workaround: Call start_trace without profiler_options
-    # jax.profiler.start_trace(log_dir=self._output_path)
+    # But this still hits ALREADY_EXISTS error
+    jax.profiler.start_trace(log_dir=self._output_path)
 
 
   def maybe_deactivate(self, step: int):

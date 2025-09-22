@@ -568,7 +568,7 @@ class PeftTrainer:
     last_step_completion_time = time.perf_counter()
     with utils.time_measure("Train loop"):
       while True:
-        self._prof.maybe_activate(self._iter_steps)
+        # self._prof.maybe_activate(self._iter_steps)
         with jax.profiler.StepTraceAnnotation(
             "train", step_num=self._iter_steps
         ):
@@ -658,7 +658,7 @@ class PeftTrainer:
             ):
               self._run_eval(eval_ds, eval_step)
 
-        self._prof.maybe_deactivate(self._iter_steps)
+        # self._prof.maybe_deactivate(self._iter_steps)
 
     self._throttler.wait_for_all()
     if self.training_hooks:
