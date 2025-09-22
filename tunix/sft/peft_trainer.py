@@ -602,19 +602,19 @@ class PeftTrainer:
           train_example = self._prepare_inputs(train_example)
           train_example = self._shard_input(train_example)
 
-          if not self._flops_measured and not skip_jit:
-            self._flops_measured = True
+          # if not self._flops_measured and not skip_jit:
+            # self._flops_measured = True
 
-            tflops_per_step = system_metrics_calculator.measure_tflops_per_step(
-                train_step_fn=train_step,
-                model=self.model,
-                optimizer=self.optimizer,
-                train_example=train_example,
-            )
-            if tflops_per_step is not None:
-              self.metrics_logger.log(
-                  "tflops_per_step", tflops_per_step, self._mode, 0
-              )
+            # tflops_per_step = system_metrics_calculator.measure_tflops_per_step(
+            #     train_step_fn=train_step,
+            #     model=self.model,
+            #     optimizer=self.optimizer,
+            #     train_example=train_example,
+            # )
+            # if tflops_per_step is not None:
+            #   self.metrics_logger.log(
+            #       "tflops_per_step", tflops_per_step, self._mode, 0
+            #   )
 
           self._throttler.wait_for_next()
           if self.training_hooks:
