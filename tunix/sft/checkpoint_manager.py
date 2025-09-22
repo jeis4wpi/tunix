@@ -65,69 +65,112 @@ class CheckpointManager:
       return None
     return self._checkpoint_manager.latest_step()
 
-  def save(
-        self,
-        step: int,
-        model: nnx.Module,
-        save_only_lora_params: bool = False,
-        force: bool = False,
-    ) -> bool:
-        """Saves the params for the given step."""
-        if self._checkpoint_manager is None:
-            return False
-        if not force and not self._checkpoint_manager.should_save(step):
-            return False
+  # def save(
+  #       self,
+  #       step: int,
+  #       model: nnx.Module,
+  #       save_only_lora_params: bool = False,
+  #       force: bool = False,
+  #   ) -> bool:
+  #       """Saves the params for the given step."""
+  #       if self._checkpoint_manager is None:
+  #           return False
+  #       if not force and not self._checkpoint_manager.should_save(step):
+  #           return False
         
-        if save_only_lora_params:
-            params = nnx.state(model, nnx.LoRAParam)
-        else:
-            params = nnx.state(model)
+  #       if save_only_lora_params:
+  #           params = nnx.state(model, nnx.LoRAParam)
+  #       else:
+  #           params = nnx.state(model)
 
-        # ---- START: New Diagnostic Step ----
-        # This code will inspect the contents of `params` to see why it appears empty.
-        logging.info("--- Running Diagnostics: Inspecting model state ---")
+  #       # ---- START: New Diagnostic Step ----
+  #       # This code will inspect the contents of `params` to see why it appears empty.
+  #       logging.info("--- Running Diagnostics: Inspecting model state ---")
 
-        all_leaves = jax.tree_util.tree_leaves(params)
-        variable_leaves = [leaf for leaf in all_leaves if isinstance(leaf, nnx.Variable)]
-        other_leaves = [leaf for leaf in all_leaves if not isinstance(leaf, nnx.Variable)]
+  #       all_leaves = jax.tree_util.tree_leaves(params)
+  #       variable_leaves = [leaf for leaf in all_leaves if isinstance(leaf, nnx.Variable)]
+  #       other_leaves = [leaf for leaf in all_leaves if not isinstance(leaf, nnx.Variable)]
 
-        logging.info("Total leaves found in nnx.state(model): %d", len(all_leaves))
-        logging.info("Found %d leaves that are `nnx.Variable` instances.", len(variable_leaves))
-        logging.info("Found %d leaves that are NOT `nnx.Variable` instances.", len(other_leaves))
+  #       logging.info("Total leaves found in nnx.state(model): %d", len(all_leaves))
+  #       logging.info("Found %d leaves that are `nnx.Variable` instances.", len(variable_leaves))
+  #       logging.info("Found %d leaves that are NOT `nnx.Variable` instances.", len(other_leaves))
 
-        if other_leaves:
-            # Log the types of the first few "other" leaves to see what they are.
-            other_types = list(set(type(leaf) for leaf in other_leaves))
-            logging.info("Unique types of non-Variable leaves found: %s", other_types)
+  #       if other_leaves:
+  #           # Log the types of the first few "other" leaves to see what they are.
+  #           other_types = list(set(type(leaf) for leaf in other_leaves))
+  #           logging.info("Unique types of non-Variable leaves found: %s", other_types)
 
-        logging.info("--- End Diagnostics ---")
-        # ---- END: New Diagnostic Step ----
+  #       logging.info("--- End Diagnostics ---")
+  #       # ---- END: New Diagnostic Step ----
 
-        # The rest of the sanitization logic remains the same.
-        flat_state = flatten_dict(dict(params))
-        plain_flat_dict = {
-            key: leaf.value
-            for key, leaf in flat_state.items()
-            if isinstance(leaf, nnx.Variable)
-        }
-        pytree_params = unflatten_dict(plain_flat_dict)
+  #       # The rest of the sanitization logic remains the same.
+  #       flat_state = flatten_dict(dict(params))
+  #       plain_flat_dict = {
+  #           key: leaf.value
+  #           for key, leaf in flat_state.items()
+  #           if isinstance(leaf, nnx.Variable)
+  #       }
+  #       pytree_params = unflatten_dict(plain_flat_dict)
 
-        # The check that produces your warning message.
-        if not pytree_params:
-            logging.warning(
-                "Skipping checkpoint for step %d. The parameter tree to save is empty.", step
-            )
-            return False
+  #       # The check that produces your warning message.
+  #       if not pytree_params:
+  #           logging.warning(
+  #               "Skipping checkpoint for step %d. The parameter tree to save is empty.", step
+  #           )
+  #           return False
 
-        jax.block_until_ready(pytree_params)
-        logging.info("Saving checkpoint for step %d", step)
-        return self._checkpoint_manager.save(
-            step,
-            args=ocp.args.Composite(
-                items=ocp.args.PyTreeSave(pytree_params),
-            ),
-            force=force,
-        )
+  #       jax.block_until_ready(pytree_params)
+  #       logging.info("Saving checkpoint for step %d", step)
+  #       return self._checkpoint_manager.save(
+  #           step,
+  #           args=ocp.args.Composite(
+  #               items=ocp.args.PyTreeSave(pytree_params),
+  #           ),
+  #           force=force,
+  #       )
+
+  def save(
+      self,
+      step: int,
+      model: nnx.Module,
+      save_only_lora_params: bool = False,
+      force: bool = False,
+  ) -> bool:
+    """Saves the params for the given step."""
+    if self._checkpoint_manager is None:
+        return False
+    if not force and not self._checkpoint_manager.should_save(step):
+        return False
+
+    if save_only_lora_params:
+        params = nnx.state(model, nnx.LoRAParam)
+    else:
+        params = nnx.state(model)
+
+    # **THE FIX**: We no longer filter for `nnx.Variable`.
+    # Instead, we identify any leaf that is a JAX array and save it directly.
+    # The leaves are already the raw arrays, so no `.value` unwrapping is needed.
+    flat_state = flatten_dict(dict(params))
+    
+    # Check for JAX array types (including PRNG keys).
+    is_array = lambda x: isinstance(x, (jax.Array, jax.ShapeDtypeStruct))
+    
+    pytree_params_flat = {
+        key: leaf for key, leaf in flat_state.items() if is_array(leaf)
+    }
+    pytree_params = unflatten_dict(pytree_params_flat)
+    
+    if not pytree_params:
+        logging.warning("Skipping checkpoint: No JAX arrays found in the model state to save.")
+        return False
+
+    jax.block_until_ready(pytree_params)
+    logging.info("Saving checkpoint for step %d", step)
+    return self._checkpoint_manager.save(
+        step,
+        args=ocp.args.Composite(items=ocp.args.PyTreeSave(pytree_params)),
+        force=force,
+    )
 
   def maybe_restore(
     self,
