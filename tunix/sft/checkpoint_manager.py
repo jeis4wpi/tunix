@@ -66,95 +66,48 @@ class CheckpointManager:
     return self._checkpoint_manager.latest_step()
 
   def save(
-      self,
-      step: int,
-      model: nnx.Module,
-      save_only_lora_params: bool = False,
-      force: bool = False,
-  ) -> bool:
-    """Saves the params for the given step.
-
-    Args:
-      step: The step to save the params for.
-      model: The model to save the params for.
-      save_only_lora_params: Whether to save only the LoRA params.
-      force: Whether to save the checkpoint regardless of the save decision
-        policy.
-
-    Returns:
-      Whether the checkpoint was saved.
-    """
+    self,
+    step: int,
+    model: nnx.Module,
+    save_only_lora_params: bool = False,
+    force: bool = False,
+) -> bool:
+    """Saves the params for the given step."""
     if self._checkpoint_manager is None:
       return False
     if not force and not self._checkpoint_manager.should_save(step):
       return False
+
     if save_only_lora_params:
       params = nnx.state(model, nnx.LoRAParam)
     else:
       params = nnx.state(model)
-    # pytree_params = jax.tree.map(
-    #     lambda x: x.value if isinstance(x, nnx.Variable) else x,
-    #     params,
-    #     is_leaf=lambda n: isinstance(n, nnx.Variable),
-    # )
 
+    # **THE FIX**: Cast the nnx.State object to a dict before flattening.
+    # This solves the AssertionError and allows the sanitization to work.
+    flat_state = flatten_dict(dict(params))
 
-    # ---- START: New Diagnostic Step ----
-    # Let's inspect the types of the leaf nodes in the state PyTree.
-    # This will tell us what's actually in the model's state.
-    types_in_state = jax.tree.map(lambda x: type(x), params)
-    logging.info("--- Inspecting types in nnx.state(model) ---")
-    logging.info("PyTree of types found in state: %s", types_in_state)
-    logging.info("---------------------------------------------")
-    # ---- START: New Robust Sanitization Logic ----
-
-    # 1. Flatten the complex nnx.state into a simple {path: value} dictionary.
-    # The values are still nnx.Variable objects.
-    flat_state = flatten_dict(params)
-
-    # 2. Create a new flat dictionary, unwrapping the nnx.Variable objects
-    # into raw JAX arrays. This implicitly filters out any non-Variable leaves.
+    # Create a new flat dictionary, unwrapping the nnx.Variable objects.
     plain_flat_dict = {
         key: leaf.value
         for key, leaf in flat_state.items()
         if isinstance(leaf, nnx.Variable)
     }
 
-    # 3. Rebuild the nested structure from the clean, flat dictionary.
-    # The result is a pure PyTree of JAX arrays with no nnx objects.
+    # Rebuild the nested structure from the clean, flat dictionary.
     pytree_params = unflatten_dict(plain_flat_dict)
 
-  # ---- END: New Robust Sanitization Logic ----
-
-
-    # Check if the resulting pytree is empty
+    # Gracefully handle the case where the parameter tree is empty.
     if not pytree_params:
-        # Use ERROR level to make this highly visible
-        logging.error(
-            "Checkpoint failed at step %d because the final parameter tree to be saved is empty.",
-            step
+        logging.warning(
+            "Skipping checkpoint for step %d. The parameter tree to save is empty.", step
         )
-        # Count the variables found in the raw state to confirm.
-        variable_count = sum(1 for leaf in jax.tree_util.tree_leaves(params) if isinstance(leaf, nnx.Variable))
-        logging.error(
-            "The sanitization logic found %d instances of `nnx.Variable` in the model's raw state. "
-            "If this count is 0, the model passed to `save()` may have no parameters.",
-            variable_count
-        )
-        # We return here to prevent the Orbax crash and keep the logs clean.
         return False
-    # ---- END: New Diagnostic Step ----
 
-
-    # Block and wait for all computations on the params to complete.
+    # Block until all computations on the concrete arrays are finished.
     jax.block_until_ready(pytree_params)
-    logging.info("Saving checkpoint for step %d", step)
 
-    # # Correct example of using jax.debug.structure()
-    # # This will print a summary of the pytree to the console/logs.
-    # logging.info("--- Pytree params structure: ---")
-    # jax.debug.structure(pytree_params)
-    # logging.info("---------------------------------")
+    logging.info("Saving checkpoint for step %d", step)
 
     return self._checkpoint_manager.save(
         step,
