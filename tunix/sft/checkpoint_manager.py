@@ -118,53 +118,57 @@ class CheckpointManager:
     )
 
   def maybe_restore(
-      self,
-      model: nnx.Module,
-      step: int | None = None,
-      restore_only_lora_params: bool = False,
-  ) -> int:
-    """Restores the params from the latest checkpoint if available and updates the model provided.
-
-    Args:
-      model: The model to restore the params for.
-      step: The step to restore the params from. If None, the latest step will
-        be used.
-      restore_only_lora_params: Whether to restore only the LoRA params.
-
-    Returns:
-      The step of the restored checkpoint or 0 if no checkpoint is available.
-    """
+    self,
+    model: nnx.Module,
+    step: int | None = None,
+    restore_only_lora_params: bool = False,
+) -> int:
+    """Restores the params from the latest checkpoint if available and updates the model provided."""
     restore_start = time.time()
     if self._checkpoint_manager is None:
-      return 0
-    if step is None:
-      step = self._checkpoint_manager.latest_step()
-      # If no checkpoint is available, return 0.
-      if step is None:
         return 0
-    # Load the params from the checkpoint.
+    if step is None:
+        step = self._checkpoint_manager.latest_step()
+    if step is None:
+        return 0
+
     if restore_only_lora_params:
-      abstract_params = nnx.state(model, nnx.LoRAParam)
+        abstract_state = nnx.state(model, nnx.LoRAParam)
     else:
-      abstract_params = nnx.state(model)
-    abstract_pytree = jax.tree.map(
-        lambda x: x.value if isinstance(x, nnx.Variable) else x,
-        abstract_params,
-        is_leaf=lambda n: isinstance(n, nnx.Variable),
-    )
+        abstract_state = nnx.state(model)
+
+    # **THE FIX**: Cast the nnx.State object to a dict before flattening.
+    flat_abstract_state = flatten_dict(dict(abstract_state))
+
+    abstract_pytree_flat = {
+        key: jax.ShapeDtypeStruct(leaf.value.shape, leaf.value.dtype)
+        for key, leaf in flat_abstract_state.items()
+        if isinstance(leaf, nnx.Variable)
+    }
+    abstract_pytree = unflatten_dict(abstract_pytree_flat)
+
+    if not abstract_pytree:
+        logging.warning("Skipping restore: The abstract parameter tree is empty.")
+        return 0
+        
     ckpt = self._checkpoint_manager.restore(
         step,
         args=ocp.args.Composite(
             items=ocp.args.PyTreeRestore(abstract_pytree),
         ),
     )
-    # Update the model state with params from the restored checkpoint.
-    # Create a new State object from the restored pytree of arrays,
-    # using the abstract_params as a structural template.
-    restored_state = jax.tree.map(
-        lambda var, val: var.replace(value=val), abstract_params, ckpt.items
-    )
-    nnx.update(model, restored_state)
+    
+    flat_restored_values = flatten_dict(ckpt.items)
+
+    updates_flat = {}
+    for path, restored_value in flat_restored_values.items():
+        original_variable = flat_abstract_state[path]
+        updates_flat[path] = original_variable.replace(value=restored_value)
+    
+    update_state = unflatten_dict(updates_flat)
+
+    nnx.update(model, update_state)
+
     logging.info(
         "Restored params from step: %d in %.3f seconds",
         step,

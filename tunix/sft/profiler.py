@@ -68,14 +68,20 @@ class Profiler:
     if self._do_not_profile or step != self._first_profile_step:
       return
     logging.info("Starting JAX profiler at step %d.", step)
-    profile_options = jax.profiler.ProfileOptions()
-    profile_options.host_tracer_level = self._profiler_options.host_tracer_level
-    profile_options.python_tracer_level = (
-        self._profiler_options.python_tracer_level
-    )
-    jax.profiler.start_trace(
-        log_dir=self._output_path, profiler_options=profile_options
-    )
+    
+    # The following code is causing the error because of a monkey patch
+    # from pathwaysutils. 
+    # profile_options = jax.profiler.ProfileOptions()
+    # profile_options.host_tracer_level = self._profiler_options.host_tracer_level
+    # profile_options.python_tracer_level = (
+    #     self._profiler_options.python_tracer_level
+    # )
+    # jax.profiler.start_trace(
+    #     log_dir=self._output_path, profiler_options=profile_options
+    # )
+    # Workaround: Call start_trace without profiler_options
+    jax.profiler.start_trace(log_dir=self._output_path)
+
 
   def maybe_deactivate(self, step: int):
     """End the profiler."""
