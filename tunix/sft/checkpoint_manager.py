@@ -129,66 +129,53 @@ class CheckpointManager:
   #           force=force,
   #       )
 
-
   def save(
-        self,
-        step: int,
-        model: nnx.Module,
-        save_only_lora_params: bool = False,
-        force: bool = False,
-    ) -> bool:
-        """Saves the params for the given step."""
-        if self._checkpoint_manager is None:
-            return False
-        if not force and not self._checkpoint_manager.should_save(step):
-            return False
-        
-        if save_only_lora_params:
-            params = nnx.state(model, nnx.LoRAParam)
-        else:
-            params = nnx.state(model)
+      self,
+      step: int,
+      model: nnx.Module,
+      save_only_lora_params: bool = False,
+      force: bool = False,
+  ) -> bool:
+    """Saves the params for the given step."""
+    if self._checkpoint_manager is None:
+        return False
+    if not force and not self._checkpoint_manager.should_save(step):
+        return False
 
-        flat_state = flatten_dict(dict(params))
+    if save_only_lora_params:
+        params = nnx.state(model, nnx.LoRAParam)
+    else:
+        params = nnx.state(model)
 
-        # ---- START: Final Diagnostic Step ----
-        # This will show us exactly what is in the flat_state dictionary.
-        logging.info("--- Running Final Diagnostics: Inspecting flattened state ---")
-        if not flat_state:
-            logging.error("CRITICAL: `flat_state` is an empty dictionary immediately after `flatten_dict(dict(params))`. This should not happen if the model has parameters.")
-        else:
-            logging.info("Iterating through every item in `flat_state`:")
-            for key, value in flat_state.items():
-                is_array = isinstance(value, (jax.Array, jax.ShapeDtypeStruct))
-                logging.info(
-                    "  - Path: %s | Type: %s | Is JAX Array? %s",
-                    key,
-                    type(value),
-                    is_array
-                )
-        logging.info("--- End Final Diagnostics ---")
-        # ---- END: Final Diagnostic Step ----
+    # ---- START: New Recursive Flattening Logic ----
+    flat_params = {}
+    def _recursive_flatten(pytree, prefix=()):
+        # If it's a State object, recurse into its items.
+        if isinstance(pytree, nnx.State):
+            for key, value in dict(pytree).items():
+                _recursive_flatten(value, prefix=prefix + (key,))
+        # If it's a Variable, extract its value (the array).
+        elif isinstance(pytree, nnx.Variable):
+            flat_params[prefix] = pytree.value
+        # If it's already a raw JAX array (like a PRNGKey), save it.
+        elif isinstance(pytree, (jax.Array, jax.ShapeDtypeStruct)):
+            flat_params[prefix] = pytree
 
-        is_array_check = lambda x: isinstance(x, (jax.Array, jax.ShapeDtypeStruct))
-        pytree_params_flat = {
-            key: leaf for key, leaf in flat_state.items() if is_array_check(leaf)
-        }
-        pytree_params = unflatten_dict(pytree_params_flat)
+    _recursive_flatten(params)
+    pytree_params = unflatten_dict(flat_params)
+    # ---- END: New Recursive Flattening Logic ----
 
-        if not pytree_params:
-            logging.warning(
-                "Skipping checkpoint for step %d. The parameter tree to save is empty.", step
-            )
-            return False
+    if not pytree_params:
+        logging.warning("Skipping checkpoint: No JAX arrays found in the model state to save.")
+        return False
 
-        jax.block_until_ready(pytree_params)
-        logging.info("Saving checkpoint for step %d", step)
-        return self._checkpoint_manager.save(
-            step,
-            args=ocp.args.Composite(
-                items=ocp.args.PyTreeSave(pytree_params),
-            ),
-            force=force,
-        )
+    jax.block_until_ready(pytree_params)
+    logging.info("Saving checkpoint for step %d", step)
+    return self._checkpoint_manager.save(
+        step,
+        args=ocp.args.Composite(items=ocp.args.PyTreeSave(pytree_params)),
+        force=force,
+    )
 
   def maybe_restore(
     self,
