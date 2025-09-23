@@ -129,7 +129,7 @@ def _calculate_global_batch_size(train_example: Any) -> int:
     train_example: A training example, which can be a dataclass, a dict, or an
       object with attributes.
 
-  Returns:
+  Returns:  # type: ignore[misc]
     The global batch size.
 
   Raises:
@@ -637,7 +637,7 @@ class PeftTrainer:
           # NB: put this after self._buffer_metrics is important
           self._post_process_train_step(aux)
           self._iter_steps += 1
-
+          breakpoint()
           # Actual checkpoint frequency is configured by checkpointing_options.
           self.checkpoint_manager.save(
               self._iter_steps,
