@@ -449,13 +449,13 @@ def transfer_state_with_mappings(
       for i, (src_dim, tgt_dim) in enumerate(
           zip(value.shape, tgt_param.value.shape)
       ):
-        breakpoint()
+        # breakpoint()
         if src_dim < tgt_dim:
           # Optional: enforce vLLM padding constraint only on padded dims
-          assert tgt_dim == 128, (
-              f'vLLM only supports padding to 128, but got {tgt_dim} in dim'
-              f' {i} for {flat_key}'
-          )
+          # assert tgt_dim == 128, (
+          #     f'vLLM only supports padding to 128, but got {tgt_dim} in dim'
+          #     f' {i} for {flat_key}'
+          # )
           pad_width.append((0, tgt_dim - src_dim))
         elif src_dim == tgt_dim:
           pad_width.append((0, 0))

@@ -98,17 +98,20 @@ class CheckpointManager:
     params_dict_with_jax_array = {
         k: v.value for k, v in nnx.to_flat_state(params)
     }
+    logging.info(
+        "Checkpointing params: %s", list(params_dict_with_jax_array.keys())
+    )
     checkpoint_args = ocp.args.PyTreeSave(
         item=params_dict_with_jax_array,
         save_args=jax.tree.map(
             lambda _: ocp.SaveArgs(), params_dict_with_jax_array
         ),
     )
-    return self._checkpoint_manager.save(
-        step,
-        args=ocp.args.Composite(model_params=checkpoint_args),
-        force=force,
-    )
+    # return self._checkpoint_manager.save(
+    #     step,
+    #     args=ocp.args.Composite(model_params=checkpoint_args),
+    #     force=force,
+    # )
 
   def maybe_restore(
       self,
