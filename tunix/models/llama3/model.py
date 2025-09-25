@@ -544,29 +544,53 @@ class Llama3(nnx.Module):
       predicted_logits: output logits predicted by the model
       new_cache: updated cache if the input cache is not None, None elsewhere.
     """
-    new_cache = None if cache is None else {}
+
+  def __call__(  # pylint: disable=too-many-arguments
+      self,
+      input_tokens: jaxtyping.Array,
+      positions: jaxtyping.Array,
+      cache: Cache | None,
+      attention_mask: jaxtyping.Array,
+  ) -> tuple[jaxtyping.Array, Cache | None]:
+    """Llama3 model forward pass."""
+
     x = self.embedder.encode(input_tokens)
 
-    for i, layer in enumerate(self.layers):
-      layer_name = f'layer_{i}'
-      layer_cache = cache[layer_name] if cache else None
-      layer_cache, x = layer(
-          x,
+    layers = tuple(self.layers)  # static tuple for scan
+
+    if cache is None:
+      layer_caches_in = tuple([None] * len(layers))
+      collect_cache = False
+    else:
+      layer_caches_in = tuple(cache[f'layer_{i}'] for i in range(len(layers)))
+      collect_cache = True
+
+    def layer_step(carry, layer_inputs):
+      hidden = carry
+      layer_mod, layer_cache = layer_inputs
+      layer_cache_out, hidden_out = layer_mod(
+          hidden,
           positions,
           layer_cache,
           attention_mask,
       )
-      if cache is not None:
-        new_cache[layer_name] = layer_cache  # pytype: disable=container-type-mismatch
+      return hidden_out, layer_cache_out
+
+    x, layer_caches_out = jax.lax.scan(layer_step, x, (layers, layer_caches_in))
+
+    new_cache: Cache | None
+    if collect_cache:
+      new_cache = {
+          f'layer_{i}': layer_caches_out[i] for i in range(len(layers))
+      }
+    else:
+      new_cache = None
 
     x = self.final_norm(x)
-
-    if self.config.weight_tying:
-      logits = self.embedder.decode(x)
-    else:
-      logits = self.lm_head(x)
-
-    return logits, new_cache  # pytype: disable=bad-return-type
+    logits = (
+        self.embedder.decode(x) if self.config.weight_tying else self.lm_head(x)
+    )
+    return logits, new_cache
 
   @property
   def num_embed(self) -> int:
