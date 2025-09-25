@@ -13,6 +13,7 @@
 # limitations under the License.
 """Common RL helper classes and functions."""
 
+import functools
 from typing import Any, Iterable
 
 import flax
@@ -152,7 +153,7 @@ def selective_log_softmax(logits: jax.Array, input_ids: jax.Array) -> jax.Array:
 
 
 # TODO(tsbao): remove this once old callsite is cleaned up.
-@nnx.jit(static_argnums=(4,))
+@nnx.remat(static_argnums=(4,))
 def get_per_token_logps(
     model: nnx.Module,
     input_tokens: jax.Array,
@@ -197,7 +198,6 @@ def process_ids(
   return prompt_completion_ids, positions, attn_mask
 
 
-@nnx.jit(static_argnames=("pad_id", "eos_id", "stop_gradient"))
 def compute_per_token_logps(
     model: nnx.Module,
     prompt_tokens: jax.Array,

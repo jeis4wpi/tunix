@@ -133,6 +133,7 @@ else:
   TOTAL_TPU_TO_USE = jax.device_count()
 
 MESH = [(1, TOTAL_TPU_TO_USE), ("fsdp", "tp")]  # YY
+# MESH = [(TOTAL_TPU_TO_USE, 1), ("fsdp", "tp")]
 
 # ====== GRPO ======
 # === Generation during GRPO training ===
@@ -161,17 +162,23 @@ EPSILON = 0.2
 
 # ====== Training ======
 # 2 is the max we can do on v5e-8 with llama3 8B model.
-# 4 is the max we can do on v5e-8 with llama3 1B model.
-BATCH_SIZE = 4
+# 8 is the max we can do on v5e-8 with llama3 1B model.
+# 16 OOM for llama3 1B model on v5e-8
+# 32 OOM for llama3 1B model on v5e-8
+BATCH_SIZE = 16
 # To speed up for quick workflow validation, we can change NUM_BATCHES to e.g. 2
-NUM_BATCHES = 1869
+# With batch size 4, we can have up to 1869 batches.
+# With batch size 8, we can have up to 934 batches.
+# With batch size 16, we can have up to 467 batches.
+# With batch size 32, we can have up to 233 batches.
+NUM_BATCHES = 900
 # Keep `NUM_TEST_BATCHES` low so that evaluation runs quickly. It can be
 # increased to a max. of 330 (if batch size is 4).
 # To speed up for quick workflow validation, we can change it to e.g. 1
-NUM_TEST_BATCHES = 50
+NUM_TEST_BATCHES = 1
 
 EVAL_EVERY_N_STEPS = 10  # this doesn't matter if `TRAIN_FRACTION = 1.0`.
-NUM_EPOCHS = 1  # can potentially train for more epochs
+NUM_EPOCHS = 10  # can potentially train for more epochs
 
 # Number of training steps.
 MAX_STEPS = int(NUM_BATCHES * NUM_ITERATIONS * TRAIN_FRACTION * NUM_EPOCHS)
@@ -778,7 +785,7 @@ cluster_config = rl_cluster_lib.ClusterConfig(
         rl_cluster_lib.Role.REFERENCE: mesh,
         rl_cluster_lib.Role.ROLLOUT: mesh,
     },
-    rollout_engine="vllm",
+    rollout_engine="vanilla",
     offload_to_cpu=False,
     training_config=rl_cluster_lib.RLTrainingConfig(
         actor_optimizer=optimizer,

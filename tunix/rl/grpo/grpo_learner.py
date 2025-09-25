@@ -34,7 +34,7 @@ RewardFn = rl_learner.RewardFn
 MetricFn = rl_learner.MetricFn
 
 
-_REMAT_GET_PER_TOKEN_LOGPS = nnx.remat(common.get_per_token_logps)
+# _REMAT_GET_PER_TOKEN_LOGPS = nnx.remat(common.get_per_token_logps)
 
 
 @flax.struct.dataclass(frozen=True)
@@ -397,7 +397,7 @@ def grpo_loss_fn(model, train_example, beta, epsilon, loss_algo):
   logits_to_keep = completion_ids.shape[1]
   positions = common.build_positions_from_mask(prompt_completion_mask)
 
-  per_token_logps, _ = _REMAT_GET_PER_TOKEN_LOGPS(
+  per_token_logps, _ = common.get_per_token_logps(
       model,
       input_tokens=input_ids,
       positions=positions,

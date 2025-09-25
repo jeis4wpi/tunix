@@ -25,6 +25,7 @@ from jax import numpy as jnp
 from jax.interpreters import pxla
 import jax.sharding as shd
 import jaxtyping
+from tunix.models import flash_attention as flash_attention_lib
 
 K_MASK = -2.3819763e38
 
@@ -86,6 +87,7 @@ class ModelConfig:
   norm_eps: float
   shd_config: ShardingConfig = ShardingConfig.get_default_sharding()
   weight_tying: bool = False  # Llama3.2 features
+  use_flash_attention: bool = False
 
   @classmethod
   def llama3_2_1b(cls):
@@ -254,6 +256,7 @@ class Attention(nnx.Module):
       rngs: nnx.Rngs,
       shd_config: ShardingConfig = ShardingConfig.get_default_sharding(),
   ):
+    self.config = config
     self.shd_config = shd_config
     self.q_proj = Einsum(
         einsum_str='BTD,DNH->BTNH',
@@ -281,6 +284,7 @@ class Attention(nnx.Module):
     )
     self.n_rep = config.num_heads // config.num_kv_heads
     self.scale = self.head_dim**-0.5
+    self.use_flash_attention = config.use_flash_attention
 
   @jax.named_scope('attention')
   def __call__(
@@ -326,21 +330,52 @@ class Attention(nnx.Module):
     b, t, qh, d = query_proj.shape
     _, s, kh, _ = key_proj.shape
 
-    # GQA
-    query_proj = query_proj.reshape((b, t, kh, qh // kh, d))
-    attn = jnp.einsum('BTHGD,BSHD->BHGTS', query_proj, key_proj) * self.scale
-    attn = attn.reshape((b, qh, t, s))
-
-    if attn_mask is not None:
-      attn = jnp.where((jnp.expand_dims(attn_mask, -3)), attn, K_MASK)
-
-    attn = jax.nn.softmax(attn.astype(jnp.float32), axis=-1).astype(
-        key_proj.dtype
+    use_flash_attention = (
+        self.use_flash_attention and jax.devices()[0].platform == 'tpu'
     )
+    if use_flash_attention:
+      q = jnp.transpose(query_proj, (0, 2, 1, 3))  # [B, qh, T, D]
+      k = jnp.transpose(key_proj, (0, 2, 1, 3))  # [B, kh, S, D]
+      v = jnp.transpose(value_proj, (0, 2, 1, 3))  # [B, kh, S, D]
 
-    attn = attn.reshape((b, kh, qh // kh, t, s))
-    qkv = jnp.einsum('BHGTS,BSHD->BTHGD', attn, value_proj)
-    qkv = qkv.reshape((b, t, qh, d))
+      if self.n_rep != 1:
+        k = jnp.repeat(k, self.n_rep, axis=1)
+        v = jnp.repeat(v, self.n_rep, axis=1)
+
+      attn_bias = None
+      if attn_mask is not None:
+        allowed = jnp.broadcast_to(attn_mask[:, None, :, :], (b, qh, t, s))
+        attn_bias = jnp.where(
+            allowed,
+            jnp.zeros((), dtype=q.dtype),
+            jnp.full((), flash_attention_lib.DEFAULT_MASK_VALUE, dtype=q.dtype),
+        )
+
+      qkv = flash_attention_lib.flash_attention(
+          q,
+          k,
+          v,
+          ab=attn_bias,
+          causal=False,
+          sm_scale=self.scale,
+      )
+      qkv = jnp.transpose(qkv, (0, 2, 1, 3))
+    else:
+      # GQA
+      query_proj = query_proj.reshape((b, t, kh, qh // kh, d))
+      attn = jnp.einsum('BTHGD,BSHD->BHGTS', query_proj, key_proj) * self.scale
+      attn = attn.reshape((b, qh, t, s))
+
+      if attn_mask is not None:
+        attn = jnp.where((jnp.expand_dims(attn_mask, -3)), attn, K_MASK)
+
+      attn = jax.nn.softmax(attn.astype(jnp.float32), axis=-1).astype(
+          key_proj.dtype
+      )
+
+      attn = attn.reshape((b, kh, qh // kh, t, s))
+      qkv = jnp.einsum('BHGTS,BSHD->BTHGD', attn, value_proj)
+      qkv = qkv.reshape((b, t, qh, d))
 
     outputs = self.o_proj(qkv)
     outputs = shard(outputs, self.shd_config.act_btd)
@@ -556,40 +591,25 @@ class Llama3(nnx.Module):
 
     x = self.embedder.encode(input_tokens)
 
-    layers = tuple(self.layers)  # static tuple for scan
+    new_cache = None if cache is None else {}
 
-    if cache is None:
-      layer_caches_in = tuple([None] * len(layers))
-      collect_cache = False
-    else:
-      layer_caches_in = tuple(cache[f'layer_{i}'] for i in range(len(layers)))
-      collect_cache = True
-
-    def layer_step(carry, layer_inputs):
-      hidden = carry
-      layer_mod, layer_cache = layer_inputs
-      layer_cache_out, hidden_out = layer_mod(
-          hidden,
+    for i, layer in enumerate(self.layers):
+      layer_name = f'layer_{i}'
+      layer_cache = cache[layer_name] if cache else None
+      layer_cache, x = layer(
+          x,
           positions,
           layer_cache,
           attention_mask,
       )
-      return hidden_out, layer_cache_out
-
-    x, layer_caches_out = jax.lax.scan(layer_step, x, (layers, layer_caches_in))
-
-    new_cache: Cache | None
-    if collect_cache:
-      new_cache = {
-          f'layer_{i}': layer_caches_out[i] for i in range(len(layers))
-      }
-    else:
-      new_cache = None
+      if cache is not None:
+        new_cache[layer_name] = layer_cache  # pytype: disable=container-type-mismatch
 
     x = self.final_norm(x)
     logits = (
         self.embedder.decode(x) if self.config.weight_tying else self.lm_head(x)
     )
+
     return logits, new_cache
 
   @property
