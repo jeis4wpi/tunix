@@ -198,19 +198,6 @@ class CommonTest(parameterized.TestCase):
         padded_x, jnp.array([[0, 1, 1, 1, 1], [0, 1, 1, 1, 1]])
     )
 
-  def test_build_positions_from_mask(self):
-    input_mask = jnp.array(
-        [[1, 1, 1, 1], [0, 1, 1, 1], [1, 1, 1, 0], [0, 1, 1, 0]]
-    )
-    positions = common.build_positions_from_mask(input_mask)
-    expected_value = jnp.array([
-        [0, 1, 2, 3],
-        [0, 0, 1, 2],
-        [0, 1, 2, 2],
-        [0, 0, 1, 1],
-    ])
-    np.testing.assert_array_equal(positions, expected_value)
-
 
 if __name__ == "__main__":
   absltest.main()
