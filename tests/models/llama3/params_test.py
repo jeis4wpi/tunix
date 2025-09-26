@@ -33,12 +33,13 @@
 import unittest
 
 from absl.testing import absltest
-from flax import nnx
 from huggingface_hub import snapshot_download
 import jax
 from tunix.models.llama3 import model
 from tunix.models.llama3 import params
+from tunix.sft import utils as sft_utils
 
+nnx_display = sft_utils.colab_nnx_display
 
 # --- Model Download Section ---
 print("Downloading Llama-3.2-1B model from Hugging Face...")
@@ -98,16 +99,7 @@ class Llama3ParamsTest(absltest.TestCase):
       self.assertIsNotNone(llama3)
 
       # Test model display completes without exceptions
-      try:
-        nnx.display(llama3)
-        display_success = True
-      except Exception as e:
-        self.fail(f"nnx.display failed for {model_name} model: {e}")
-
-      self.assertTrue(
-          display_success, f"{model_name} model display should succeed"
-      )
-
+      self.assertTrue(nnx_display(llama3))
       print(f"Llama3-{model_name} model loaded and displayed successfully")
 
   def test_create_model_from_safe_tensors_1b(self):

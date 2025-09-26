@@ -16,6 +16,8 @@
 
 import collections
 import contextlib
+import io
+import pprint
 import functools
 import gc
 import time
@@ -86,6 +88,31 @@ def time_measure(context: str = "", suppress_logging: bool = False):
       logging.info(
           "%s finished in: %.4f seconds", context, time.perf_counter() - start
       )
+
+
+def safe_display(module: nnx.Module) -> None:
+  """Return a compact textual summary of an NNX module. This is the workaround for flax<=0.12.0"""
+  tree = jax.tree_util.tree_map(
+      lambda x: x.shape if hasattr(x, "shape") else type(x), module
+  )
+  buf = io.StringIO()
+  pprint.pprint(tree, stream=buf, width=120)
+  summary = buf.getvalue()
+  print(summary)
+  return summary
+
+
+def colab_nnx_display(module: Any) -> bool:
+  """Display an NNX module without hard failing in notebook environments."""
+  try:
+    nnx.display(module)
+  except Exception:  # pylint: disable=broad-exception-caught
+    try:
+      safe_display(module)
+    except Exception:  # pylint: disable=broad-exception-caught
+      logging.warning("Failed to display module: %s", module)
+      return False
+  return True
 
 
 def _pathways_hbm_usage_gb(devices: Any) -> List[Tuple[float, Optional[float]]]:
