@@ -637,7 +637,6 @@ class PeftTrainer:
           # NB: put this after self._buffer_metrics is important
           self._post_process_train_step(aux)
           self._iter_steps += 1
-          breakpoint()
           # Actual checkpoint frequency is configured by checkpointing_options.
           self.checkpoint_manager.save(
               self._iter_steps,
