@@ -662,7 +662,26 @@ def transfer_state_with_mappings(
   # Batch reshard and assign if resharding is configured
   if reshard_fn:
     tgt_flat_dict = {key: tgt_params.value for key, tgt_params in tgt_flat_list}
-    resharded_values_flat_dict = reshard_fn(tgt_flat_dict, sharding_dict)
+    # resharded_values_flat_dict = reshard_fn(tgt_flat_dict, sharding_dict)
+    resharded_values_flat_dict = {}
+    for tgt_key, tgt_value in tgt_flat_dict.items():
+      if isinstance(tgt_value, jax.Array):
+        print("Resharding ", tgt_key, tgt_value.shape, tgt_value.sharding)
+        try:
+          resharded_values_flat_dict[tgt_key] = reshard_fn(
+              [tgt_value], [sharding_dict[tgt_key]]
+          )
+        except Exception as e:
+          logging.error('Resharding failed for key %s: %s', tgt_key, e)
+          raise
+      else:
+        print(
+            'Cannot reshard non-array value: %s and type: %s',
+            tgt_key,
+            type(tgt_value),
+        )
+        resharded_values_flat_dict[tgt_key] = tgt_value
+    # resharded_values_flat_dict = reshard_fn(tgt_flat_dict, sharding_dict)
 
     for tgt_key, tgt_param in tgt_flat_list:
       if tgt_key not in resharded_values_flat_dict:
