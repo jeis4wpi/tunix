@@ -25,11 +25,14 @@ from tunix.generate import sampler
 from tunix.models.llama3 import model
 from tunix.models.llama3 import params
 
-MODEL_VERSION = "meta-llama/Llama-3.1-8B-Instruct"
+os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
+
+MODEL_VERSION = "meta-llama/Llama-3.2-1B-Instruct"
 
 # Consider switch to tempfile after figuring out how it works
-temp_dir = tempfile.gettempdir()
-MODEL_CP_PATH = os.path.join(temp_dir, "models", MODEL_VERSION)
+# temp_dir = tempfile.gettempdir()
+# MODEL_CP_PATH = os.path.join(temp_dir, "models", MODEL_VERSION)
+MODEL_CP_PATH = "/workspace/rl/grpo/models/" + MODEL_VERSION
 
 
 print("Make sure you logged in to the huggingface cli.")
@@ -45,7 +48,7 @@ print(f"Downloaded {filtered_files} to: {MODEL_CP_PATH}")
 
 mesh = jax.make_mesh((1, len(jax.devices())), ("fsdp", "tp"))
 config = (
-    model.ModelConfig.llama3_1_8b()
+    model.ModelConfig.llama3_2_1b()
 )  # pick corresponding config based on model version
 llama3 = params.create_model_from_safe_tensors(MODEL_CP_PATH, config, mesh)
 nnx.display(llama3)
@@ -83,15 +86,52 @@ inputs = templatize([
     "tell me your name, respond in Chinese",
 ])
 
-sampler = sampler.Sampler(
-    llama3,
-    tokenizer,
-    sampler.CacheConfig(
-        cache_size=256, num_layers=32, num_kv_heads=8, head_dim=128
-    ),
-)
-out = sampler(inputs, max_generation_steps=128, echo=True, top_p=None)
 
-for t in out.text:
-  print(t)
-  print("*" * 30)
+import os
+
+from openai import OpenAI
+import requests
+# sampler = sampler.Sampler(
+#     llama3,
+#     tokenizer,
+#     sampler.CacheConfig(
+#         cache_size=256, num_layers=32, num_kv_heads=8, head_dim=128
+#     ),
+# )
+from vllm.entrypoints.openai.api_server import serve
+
+print(f"YY main process id: {os.getpid()}")
+# serve(
+#     model=MODEL_VERSION,
+#     host="0.0.0.0",
+#     port=8000,
+#     max_model_len=512,
+# )
+openai_api_key = "EMPTY"
+openai_api_base = "http://localhost:8000/v1"
+client = OpenAI(
+    api_key=openai_api_key,
+    base_url=openai_api_base,
+)
+completion = client.completions.create(
+    model="Qwen/Qwen2.5-1.5B-Instruct", prompt="San Francisco is a"
+)
+print("Completion result:", completion)
+
+
+resp = requests.post(
+    "http://localhost:8000/v1/completions",
+    headers={"Content-Type": "application/json"},
+    json={
+        "model": MODEL_VERSION,
+        "prompt": "Explain why the sky is blue.",
+        "max_tokens": 100,
+    },
+)
+print(resp.json())
+
+# out = sampler(inputs, max_generation_steps=128, echo=True, top_p=None)
+
+# for t in out.text:
+#   print(t)
+#   print("*" * 30)

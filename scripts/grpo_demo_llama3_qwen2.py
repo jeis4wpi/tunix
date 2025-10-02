@@ -146,7 +146,7 @@ TOP_K = 50
 # The number of times the policy generates multiple responses for a given prompt
 # within a single training step. This corresponds to `G` in Algorithm 1 in the
 # paper. The "group" in GRPO comes from here.
-NUM_GENERATIONS = 4
+NUM_GENERATIONS = 2
 
 # === other GRPO configs ===
 # The number of iterations per batch (𝜇 in GRPO algo 1).
@@ -162,13 +162,13 @@ EPSILON = 0.2
 # ====== Training ======
 # 2 is the max we can do on v5e-8 with llama3 8B model.
 # 4 is the max we can do on v5e-8 with llama3 1B model.
-BATCH_SIZE = 4
+BATCH_SIZE = 2
 # To speed up for quick workflow validation, we can change NUM_BATCHES to e.g. 2
-NUM_BATCHES = 1869
+NUM_BATCHES = 3600
 # Keep `NUM_TEST_BATCHES` low so that evaluation runs quickly. It can be
 # increased to a max. of 330 (if batch size is 4).
 # To speed up for quick workflow validation, we can change it to e.g. 1
-NUM_TEST_BATCHES = 50
+NUM_TEST_BATCHES = 1
 
 EVAL_EVERY_N_STEPS = 10  # this doesn't matter if `TRAIN_FRACTION = 1.0`.
 NUM_EPOCHS = 1  # can potentially train for more epochs

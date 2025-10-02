@@ -33,28 +33,30 @@ from tunix.models.llama3 import params as llama_params
 os.environ["SKIP_JAX_PRECOMPILE"] = "1"
 
 
-class VllmSamplerTest(absltest.TestCase):
+class TestVllmSampler(absltest.TestCase):
 
-  def setUp(self) -> None:
-    super().setUp()
+  @classmethod
+  def setUpClass(cls) -> None:
+    super().setUpClass()
     mesh_shape = (1, len(jax.devices()))  # e.g., (1, 8) for v2-8
     axis_names = ("fsdp", "tp")  #
-    self.mesh = jax.make_mesh(mesh_shape, axis_names, devices=jax.devices())
+    cls.mesh = jax.make_mesh(mesh_shape, axis_names, devices=jax.devices())
 
-    self.repo_id = "meta-llama/Llama-3.1-8B-Instruct"
-    temp_dir = tempfile.gettempdir()
-    self.model_path = os.path.join(temp_dir, "models", self.repo_id)
-    all_files = huggingface_hub.list_repo_files(self.repo_id)
+    cls.repo_id = "meta-llama/Llama-3.2-1B-Instruct"
+    # temp_dir = tempfile.gettempdir()
+    temp_dir = "/workspace/rl/grpo"
+    cls.model_path = os.path.join(temp_dir, "models", cls.repo_id)
+    all_files = huggingface_hub.list_repo_files(cls.repo_id)
     filtered_files = [f for f in all_files if not f.startswith("original/")]
 
     for filename in filtered_files:
       huggingface_hub.hf_hub_download(
-          repo_id=self.repo_id, filename=filename, local_dir=self.model_path
+          repo_id=cls.repo_id, filename=filename, local_dir=cls.model_path
       )
-    print(f"Downloaded {filtered_files} to: {self.model_path}")
+    print(f"Downloaded {filtered_files} to: {cls.model_path}")
 
     # TODO(b/432096319): Enable after LoRA support in vLLM
-    self.enable_lora = False
+    cls.enable_lora = False
 
   def get_lora_model(self, base_model):
     lora_provider = qwix.LoraProvider(
@@ -96,7 +98,7 @@ class VllmSamplerTest(absltest.TestCase):
       llama3 = self.get_lora_model(llama3)
       print(f"Loaded LoRA model: {model_version} with LoRA enabled")
     # nnx.display(llama3)
-    return llama3
+    return llama3, model_config
 
   def print_mem_stats(self, label: str):
     print(f"\nMemstats: {label}:")
@@ -124,7 +126,7 @@ class VllmSamplerTest(absltest.TestCase):
     return out
 
   def test_vllm_sampler(self):
-    tunix_model = self.load_llama3_model(
+    tunix_model, model_config = self.load_llama3_model(
         self.repo_id, enable_lora=self.enable_lora
     )
 
@@ -136,9 +138,7 @@ class VllmSamplerTest(absltest.TestCase):
       args["additional_config"]["lora_config"] = {
           "rank": 64,
           "alpha": 64.0,
-          "module_path": (
-              ".*q_proj|.*k_proj|.*v_proj|.*o_proj|.*gate_proj|.*down_proj|.*up_proj"
-          ),
+          "module_path": ".*q_proj|.*k_proj|.*v_proj|.*o_proj|.*gate_proj|.*down_proj|.*up_proj",
           # "dropout": 0.0,
           # "bias": "none",
       }
@@ -164,7 +164,10 @@ class VllmSamplerTest(absltest.TestCase):
         transformer=tunix_model,
         tokenizer=model_tokenizer,
         cache_config=vanilla_sampler.CacheConfig(
-            cache_size=512, num_layers=32, num_kv_heads=8, head_dim=128
+            cache_size=512,
+            num_layers=model_config.num_layers,
+            num_kv_heads=model_config.num_kv_heads,
+            head_dim=model_config.head_dim,
         ),
     )
     vanilla_output = vn_sampler(
@@ -185,12 +188,14 @@ class VllmSamplerTest(absltest.TestCase):
         mesh=self.mesh,
         hbm_utilization=0.2,
         init_with_random_weights=True,
-        tpu_backend_type=None,
+        tpu_backend_type="torchax",
+        tensor_parallel_size=jax.device_count(),
         mapping_config=vllm_sampler.MappingConfig(
             to_hf_mappings=tunix_model.to_hf_mappings(),
             to_hf_transpose_keys=tunix_model.to_hf_transpose_keys(),
             lora_to_hf_mappings=tunix_model.lora_to_hf_mappings(),
             lora_config=args["additional_config"]["lora_config"],
+            to_hf_hook_fns=None,
         ),
     )
 
@@ -207,7 +212,7 @@ class VllmSamplerTest(absltest.TestCase):
         input_strings=inputs,
         max_generation_steps=128,  # Changed from 768 to 128 for vLLM
         max_prompt_length=None,  # Use default max prompt length
-        temperature=0.0,
+        temperature=0.1,
         # top_p=0.9,
         top_k=1,
         seed=0,
@@ -216,15 +221,9 @@ class VllmSamplerTest(absltest.TestCase):
     )
 
     expected_output_pattern = [
-        (
-            r"^Hello Tom, it's nice to meet you. Is there something I can help"
-            r" you with or would you like to chat\?$"
-        ),
-        r"^Paris\.$",
-        (
-            r"^The sky appears blue because of a phenomenon called Rayleigh"
-            r" scattering.*"
-        ),
+        r"^Hello Tom, how can I help you today\?$",
+        r"^Paris$",
+        r"^The color blue is a complex and fascinating topic, and.*",
     ]
 
     print("-" * 50)
@@ -266,7 +265,7 @@ class VllmSamplerTest(absltest.TestCase):
       )
 
   def test_generation_length_exceed_max_model_len(self):
-    tunix_model = self.load_llama3_model(
+    tunix_model, _ = self.load_llama3_model(
         self.repo_id, enable_lora=self.enable_lora
     )
 
@@ -293,10 +292,12 @@ class VllmSamplerTest(absltest.TestCase):
         hbm_utilization=0.2,
         init_with_random_weights=True,
         tpu_backend_type=None,
+        tensor_parallel_size=jax.device_count(),
         mapping_config=vllm_sampler.MappingConfig(
             to_hf_mappings=tunix_model.to_hf_mappings(),
             to_hf_transpose_keys=tunix_model.to_hf_transpose_keys(),
             lora_to_hf_mappings=tunix_model.lora_to_hf_mappings(),
+            to_hf_hook_fns=None,
             lora_config=args["additional_config"]["lora_config"],
         ),
     )
@@ -313,7 +314,7 @@ class VllmSamplerTest(absltest.TestCase):
           input_strings=inputs,
           max_generation_steps=128,  # Changed from 768 to 128 for vLLM
           max_prompt_length=None,  # Use default max prompt length
-          temperature=0.0,
+          temperature=0.1,
           # top_p=0.9,
           top_k=1,
           seed=0,
