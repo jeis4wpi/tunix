@@ -45,7 +45,8 @@ jobs:
     needs: build_tunix_package
     uses: ./.github/workflows/run_tests_against_package.yml
 
-  tunix_tpu_tests:
+
+  tunix_tpu_unit_tests:
     needs: build_tunix_package
     uses: ./.github/workflows/tpu-tests.yml
 
