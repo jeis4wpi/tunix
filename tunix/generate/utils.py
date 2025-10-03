@@ -456,7 +456,9 @@ def transfer_state_with_mappings(
           #     f'vLLM only supports padding to 128, but got {tgt_dim} in dim'
           #     f' {i} for {flat_key}'
           # )
-          pad_width.append((0, tgt_dim - src_dim))
+          value = jnp.repeat(value, tgt_dim // src_dim, axis=i)
+          break
+          # pad_width.append((0, tgt_dim - src_dim))
         elif src_dim == tgt_dim:
           pad_width.append((0, 0))
         else:
@@ -471,7 +473,7 @@ def transfer_state_with_mappings(
           value.shape,
           tgt_param.value.shape,
       )
-      value = jnp.pad(value, pad_width)
+      # value = jnp.pad(value, pad_width)
 
     # Type cast if needed
     if tgt_param.value.dtype != value.dtype:
