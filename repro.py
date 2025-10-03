@@ -8,7 +8,7 @@ pathwaysutils.initialize()
 
 # for vLLM we can skip JAX precompilation with this flag, it makes startup faster
 os.environ["SKIP_JAX_PRECOMPILE"] = "1"
-os.environ["JAX_RANDOM_WEIGHTS"] = "1"
+# os.environ["JAX_RANDOM_WEIGHTS"] = "1"
 
 
 MODEL = "meta-llama/Llama-3.1-8B-Instruct"
