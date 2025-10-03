@@ -11,14 +11,13 @@ os.environ["SKIP_JAX_PRECOMPILE"] = "1"
 # os.environ["JAX_RANDOM_WEIGHTS"] = "1"
 
 
-MODEL = "meta-llama/Llama-3.1-8B-Instruct"
+MODEL = "meta-llama/Llama-3.1-1B-Instruct"
 
 golden_llm = LLM(
     MODEL,
     max_model_len=128,
-    tensor_parallel_size=16,
-    gpu_memory_utilization=0.3,
-)
+    tensor_parallel_size=16
+    )
 
 print("vLLM model loaded successfully")
 
