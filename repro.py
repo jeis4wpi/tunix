@@ -11,7 +11,7 @@ os.environ["SKIP_JAX_PRECOMPILE"] = "1"
 # os.environ["JAX_RANDOM_WEIGHTS"] = "1"
 
 
-MODEL = "meta-llama/Llama-3.1-1B-Instruct"
+MODEL = "meta-llama/Llama-3.2-1B-Instruct"
 
 golden_llm = LLM(
     MODEL,
