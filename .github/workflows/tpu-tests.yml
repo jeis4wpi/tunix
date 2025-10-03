@@ -108,8 +108,6 @@ jobs:
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        # Install vLLM and dependencies required for GRPO
-        bash scripts/install_tunix_vllm_requirement.sh
         
         # Download GSM8K dataset
         mkdir -p /tmp/grpo_test/rl/grpo/data
