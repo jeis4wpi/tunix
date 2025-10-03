@@ -1,3 +1,27 @@
+import os
+import jax.numpy as jnp
+import pathwaysutils
+
+from vllm import LLM
+pathwaysutils.initialize()
+
+
+# for vLLM we can skip JAX precompilation with this flag, it makes startup faster
+os.environ["SKIP_JAX_PRECOMPILE"] = "1"
+os.environ["JAX_RANDOM_WEIGHTS"] = "1"
+
+
+MODEL = "meta-llama/Llama-3.1-8B-Instruct"
+
+golden_llm = LLM(
+    MODEL,
+    max_model_len=128,
+    tensor_parallel_size=16,
+    gpu_memory_utilization=0.3,
+)
+
+print("vLLM model loaded successfully")
+
 import functools
 import os
 from pprint import pprint
@@ -39,17 +63,6 @@ from tunix.generate import utils
 import tunix.generate.tokenizer_adapter as tok_adapter
 from tunix.rl import reshard
 
-import jax.numpy as jnp
-import pathwaysutils
-
-from vllm import LLM
-
-
-pathwaysutils.initialize()
-
-# for vLLM we can skip JAX precompilation with this flag, it makes startup faster
-os.environ["SKIP_JAX_PRECOMPILE"] = "1"
-os.environ["JAX_RANDOM_WEIGHTS"] = "1"
 
 # ~/HOME/maxtext/MaxText/examples
 
@@ -134,17 +147,6 @@ config_ref = pyconfig.initialize(
 
 # breakpoint()
 
-
-MODEL = "meta-llama/Llama-3.1-8B-Instruct"
-
-golden_llm = LLM(
-    MODEL,
-    max_model_len=128,
-    tensor_parallel_size=16,
-    gpu_memory_utilization=0.3,
-)
-
-print("vLLM model loaded successfully")
 
 
 llama3_1_8b, mesh = get_ref_maxtext_model(config_ref)
