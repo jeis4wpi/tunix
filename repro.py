@@ -41,6 +41,10 @@ from tunix.rl import reshard
 
 import jax.numpy as jnp
 import pathwaysutils
+
+from vllm import LLM
+
+
 pathwaysutils.initialize()
 
 # for vLLM we can skip JAX precompilation with this flag, it makes startup faster
@@ -132,7 +136,6 @@ config_ref = pyconfig.initialize(
 
 
 MODEL = "meta-llama/Llama-3.1-8B-Instruct"
-from vllm import LLM
 
 golden_llm = LLM(
     MODEL,
